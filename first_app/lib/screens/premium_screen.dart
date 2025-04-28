@@ -163,6 +163,16 @@ class _PremiumScreenState extends State<PremiumScreen> {
                         fontStyle: FontStyle.italic,
                         height: 1.4),
                   ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Note: Ads appear only after 3 months of free usage.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: Colors.yellow,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        height: 1.4),
+                  ),
                   const SizedBox(
                       height: 10), // Add some space before the next buttons
                   Row(

@@ -829,6 +829,52 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
             'report_header', backup['report_header'] as String);
       }
 
+      // Save the spreadsheet ID if provided
+      final spreadsheetId = _spreadsheetIdController.text.trim();
+      if (spreadsheetId.isNotEmpty) {
+        _logger
+            .info('Saving spreadsheet ID for cloud connection: $spreadsheetId');
+        await prefs.setString('mosque_sheet_$mosqueName', spreadsheetId);
+        await prefs.setString('mosque_code', spreadsheetId);
+      }
+
+      // Save Advanced Setup settings if enabled
+      if (_isAdvancedSetup) {
+        _logger.info('Saving advanced setup settings after offline recovery');
+
+        if (_selectedServiceAccountPath == null) {
+          throw Exception('Please select a service account JSON file');
+        }
+
+        final email = _emailController.text.trim();
+        if (email.isEmpty) {
+          throw Exception('Please enter your email address for sharing');
+        }
+
+        final apiKey = _apiKeyController.text.trim();
+        if (apiKey.isEmpty) {
+          throw Exception('Please enter your Google Cloud API key');
+        }
+
+        // Save advanced settings
+        await prefs.setBool('using_direct_sheets', true);
+        await prefs.setString(
+            'service_account_path', _selectedServiceAccountPath!);
+        await prefs.setString('sheets_user_email', email);
+
+        // Save API key immediately and verify
+        _logger.info(
+            'Saving API key after offline recovery: ${apiKey.substring(0, min(10, apiKey.length))}...');
+        await prefs.setString('google_api_key', apiKey);
+
+        final savedApiKey = prefs.getString('google_api_key');
+        _logger.info(
+            'Verified API key saved after offline recovery: ${savedApiKey != null ? savedApiKey.substring(0, min(10, savedApiKey.length)) + "..." : "null"}');
+      } else {
+        // Make sure we're not using direct sheets
+        await prefs.setBool('using_direct_sheets', false);
+      }
+
       await prefs.setBool('first_launch', false);
 
       if (!mounted) return;
@@ -867,21 +913,43 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
       _logger.info('Picking service account JSON file');
       setState(() => _isLoading = true);
 
-      // First try with specific file type
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
+      // Try several approaches to ensure JSON files can be selected
+      FilePickerResult? result;
+
+      // First try with any file type and filter later
+      _logger.info('Trying with ANY file type first');
+      result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
         allowMultiple: false,
+        dialogTitle: 'Select Service Account JSON File',
+        // Don't use withData as it may cause issues with large files
+        lockParentWindow: true, // Try to prevent window destruction issues
       );
 
-      // If no results, try with any file type and filter manually
-      if (result == null || result.files.isEmpty) {
-        _logger.info(
-            'No files selected or JSON files not visible, trying with any file type');
+      // Log whether we got a result
+      if (result != null) {
+        _logger.info('File selected: ${result.files.first.name}');
+        if (result.files.first.path != null) {
+          _logger.info('File path: ${result.files.first.path}');
+        } else {
+          _logger.warning('File path is null!');
+        }
+      } else {
+        _logger.info('No file selected or picker cancelled');
+
+        // Second try with custom type if first attempt failed
+        _logger.info('Trying with custom type');
         result = await FilePicker.platform.pickFiles(
-          type: FileType.any,
+          type: FileType.custom,
+          allowedExtensions: ['json', 'txt'],
           allowMultiple: false,
+          dialogTitle: 'Select Service Account JSON File',
+          lockParentWindow: true,
         );
+
+        if (result == null) {
+          _logger.info('Still no file selected after second attempt');
+        }
       }
 
       if (result != null && result.files.isNotEmpty) {
@@ -889,95 +957,119 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
         final path = file.path;
         final String fileName = file.name;
 
-        _logger.info('Selected file: $fileName, path: $path');
+        _logger.info('Processing selected file: $fileName');
+
+        if (path == null) {
+          _logger.warning('File path is null, cannot process file');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Cannot access selected file path'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 5),
+              ),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
+        }
 
         // Check if it's a JSON file by extension or by name
         bool isJsonFile = fileName.toLowerCase().endsWith('.json') ||
-            (path?.toLowerCase().endsWith('.json') ?? false);
+            path.toLowerCase().endsWith('.json');
 
-        _logger.info('Is JSON file by extension check: $isJsonFile');
+        _logger.info('File appears to be JSON by name/extension: $isJsonFile');
 
-        if (path != null) {
-          // If it doesn't have a .json extension, check the contents
-          if (!isJsonFile) {
-            _logger
-                .info('File does not have .json extension, checking content');
-            try {
-              final jsonFile = File(path);
-              final fileContent = await jsonFile.readAsString();
+        // Even if it doesn't have a .json extension, try to parse it as JSON
+        try {
+          final jsonFile = File(path);
 
-              // Try to parse as JSON to validate
-              final dynamic jsonData = json.decode(fileContent);
-
-              // If we got here, it's valid JSON
-              isJsonFile = true;
-              _logger.info('File content is valid JSON');
-            } catch (e) {
-              _logger.warning('File is not valid JSON: $e');
-              isJsonFile = false;
-            }
+          // Check if file exists and is readable
+          if (!await jsonFile.exists()) {
+            _logger.warning('File does not exist: $path');
+            throw Exception('File does not exist');
           }
 
-          if (isJsonFile) {
-            // Additional validation for service account file
-            try {
-              final jsonFile = File(path);
-              final jsonString = await jsonFile.readAsString();
-              final jsonData = json.decode(jsonString);
+          _logger.info('Reading file content...');
+          final fileContent = await jsonFile.readAsString();
+          _logger.info(
+              'Successfully read file content, length: ${fileContent.length}');
 
-              // Check if it's a valid service account file
-              if (jsonData is Map<String, dynamic> &&
-                  jsonData['type'] == 'service_account' &&
-                  jsonData['project_id'] != null &&
-                  jsonData['private_key'] != null &&
-                  jsonData['client_email'] != null) {
-                setState(() {
-                  _selectedServiceAccountPath = path;
-                });
+          // Try to parse as JSON to validate
+          _logger.info('Attempting to parse as JSON...');
+          final dynamic jsonData = json.decode(fileContent);
+          _logger.info('Successfully parsed file as JSON');
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Service account file selected successfully'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } else {
-                throw Exception(
-                    'Invalid service account file format - required fields missing');
-              }
-            } catch (e) {
-              _logger.warning('Invalid service account file: $e');
+          // If we got here, it's valid JSON
+          isJsonFile = true;
+
+          // Check if it's a valid service account file
+          if (jsonData is Map<String, dynamic>) {
+            if (jsonData['type'] == 'service_account' &&
+                jsonData['project_id'] != null &&
+                jsonData['private_key'] != null &&
+                jsonData['client_email'] != null) {
+              _logger.info('Valid service account file confirmed');
+              setState(() {
+                _selectedServiceAccountPath = path;
+              });
+
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content:
-                      Text('Invalid service account file: ${e.toString()}'),
-                  backgroundColor: Colors.red,
+                const SnackBar(
+                  content: Text('Service account file selected successfully'),
+                  backgroundColor: Colors.green,
                 ),
               );
+
+              // Successfully validated service account, return early
+              setState(() => _isLoading = false);
+              return;
+            } else {
+              // Valid JSON but not a valid service account
+              _logger.warning(
+                  'File is not a valid service account: missing required fields');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        'The selected file is not a valid service account file. It should contain type, project_id, private_key, and client_email fields.'),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 5),
+                  ),
+                );
+              }
             }
-          } else {
+          }
+        } catch (e) {
+          _logger.severe('Error processing selected file: $e');
+          if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content:
-                    Text('Please select a valid JSON service account file'),
-                backgroundColor: Colors.orange,
+              SnackBar(
+                content: Text('Error processing file: ${e.toString()}'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 8),
               ),
             );
           }
         }
       } else {
-        _logger.info('No file selected');
+        _logger.info('No file selected or picker was cancelled');
       }
-    } catch (e) {
-      _logger.severe('Error picking service account file', e);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error selecting file: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    } catch (e, stack) {
+      _logger.severe('Error picking service account file: $e', e, stack);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting file: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -1007,6 +1099,23 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
           throw Exception('Please enter your Google Cloud API key');
         }
 
+        // Save apiKey to preferences immediately
+        _logger.info(
+            'Saving API key to shared preferences in handleSendData: ${apiKey.substring(0, min(10, apiKey.length))}...');
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('google_api_key', apiKey);
+
+        // Double-check that it was saved
+        final savedApiKey = prefs.getString('google_api_key');
+        _logger.info(
+            'Verified API key in handleSendData: ${savedApiKey != null ? (savedApiKey.isEmpty ? "empty" : savedApiKey.substring(0, min(10, savedApiKey.length)) + "...") : "null"} (Length: ${savedApiKey?.length ?? 0})');
+
+        // Other preferences
+        await prefs.setBool('using_direct_sheets', true);
+        await prefs.setString(
+            'service_account_path', _selectedServiceAccountPath!);
+        await prefs.setString('sheets_user_email', email);
+
         // Create direct service
         _directSheetsService = DirectGoogleSheetsService();
         await _directSheetsService!
@@ -1027,14 +1136,6 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
           throw Exception(
               'Failed to create spreadsheet: ${e.toString()}. Please check your internet connection and try again.');
         }
-
-        // Save service account path to preferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(
-            'service_account_path', _selectedServiceAccountPath!);
-        await prefs.setBool('using_direct_sheets', true);
-        await prefs.setString('sheets_user_email', email);
-        await prefs.setString('google_api_key', apiKey);
       } else {
         // Standard setup with script-based service
         _logger.info('Creating new spreadsheet for: $mosqueName');
@@ -1253,7 +1354,14 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
             if (apiKey.isEmpty) {
               throw Exception('Please enter your Google Cloud API key');
             }
+
+            // Save API key immediately and verify
+            _logger.info(
+                'Saving API key in _handleSave recovery: ${apiKey.substring(0, min(10, apiKey.length))}...');
             await prefs.setString('google_api_key', apiKey);
+            final savedApiKey = prefs.getString('google_api_key');
+            _logger.info(
+                'Verified API key saved in _handleSave recovery: ${savedApiKey != null ? savedApiKey.substring(0, min(10, savedApiKey.length)) + "..." : "null"}');
 
             // Create direct service
             _directSheetsService = DirectGoogleSheetsService();
@@ -1303,6 +1411,20 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
               if (apiKey.isEmpty) {
                 throw Exception('Please enter your Google Cloud API key');
               }
+
+              // Save API key and other settings
+              _logger.info(
+                  'Saving API key in _handleSave new setup: ${apiKey.substring(0, min(10, apiKey.length))}...');
+              await prefs.setString('google_api_key', apiKey);
+              await prefs.setString(
+                  'service_account_path', _selectedServiceAccountPath!);
+              await prefs.setString('sheets_user_email', email);
+              await prefs.setBool('using_direct_sheets', true);
+
+              // Verify API key was saved
+              final savedApiKey = prefs.getString('google_api_key');
+              _logger.info(
+                  'Verified API key saved in _handleSave new setup: ${savedApiKey != null ? savedApiKey.substring(0, min(10, savedApiKey.length)) + "..." : "null"}');
 
               // Create direct service
               _directSheetsService = DirectGoogleSheetsService();
@@ -1385,6 +1507,17 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
           if (_emailController.text.isNotEmpty) {
             await prefs.setString(
                 'sheets_user_email', _emailController.text.trim());
+          }
+          if (_apiKeyController.text.isNotEmpty) {
+            final apiKey = _apiKeyController.text.trim();
+            _logger.info(
+                'Saving API key in final section: ${apiKey.substring(0, min(10, apiKey.length))}...');
+            await prefs.setString('google_api_key', apiKey);
+
+            // Verify API key was saved
+            final savedApiKey = prefs.getString('google_api_key');
+            _logger.info(
+                'Verified final API key saved: ${savedApiKey != null ? savedApiKey.substring(0, min(10, savedApiKey.length)) + "..." : "null"}');
           }
         } else {
           await prefs.setBool('using_direct_sheets', false);
@@ -1533,6 +1666,229 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
                         },
                       ),
                       const SizedBox(height: 24),
+
+                      // New Setup Mode - Advanced Setup Toggle
+                      if (!_isRecoveryMode) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: _isAdvancedSetup
+                                ? Theme.of(context)
+                                    .primaryColor
+                                    .withOpacity(0.05)
+                                : Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _isAdvancedSetup
+                                  ? Theme.of(context)
+                                      .primaryColor
+                                      .withOpacity(0.3)
+                                  : Colors.grey[300]!,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.settings,
+                                    color: _isAdvancedSetup
+                                        ? Theme.of(context).primaryColor
+                                        : Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Advanced Setup',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Switch(
+                                    value: _isAdvancedSetup,
+                                    onChanged: _isLoading
+                                        ? null
+                                        : (value) {
+                                            setState(() {
+                                              _isAdvancedSetup = value;
+                                            });
+                                          },
+                                  ),
+                                ],
+                              ),
+                              if (!_isAdvancedSetup) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Enable advanced setup if you want to use your own Google service account for direct API access.',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                              if (_isAdvancedSetup) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: Colors.orange.withOpacity(0.3)),
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(Icons.info_outline,
+                                          color: Colors.orange[700]),
+                                      const SizedBox(width: 12),
+                                      const Expanded(
+                                        child: Text(
+                                          'Advanced setup requires a Google service account file and API key. You will need to create these in Google Cloud Platform.',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // Service Account file picker
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border:
+                                        Border.all(color: Colors.grey[300]!),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Text(
+                                            'Service Account File:',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.help_outline,
+                                                size: 18),
+                                            onPressed: () =>
+                                                _showServiceAccountHelpDialog(
+                                                    context),
+                                            tooltip:
+                                                'Help with service account files',
+                                          ),
+                                        ],
+                                      ),
+                                      if (_selectedServiceAccountPath !=
+                                          null) ...[
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          _selectedServiceAccountPath!,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                      const SizedBox(height: 12),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed: _isLoading
+                                              ? null
+                                              : _pickServiceAccountFile,
+                                          icon: const Icon(Icons.upload_file,
+                                              size: 18),
+                                          label: Text(
+                                            _selectedServiceAccountPath != null
+                                                ? 'Change Service Account File'
+                                                : 'Select Service Account File',
+                                            style:
+                                                const TextStyle(fontSize: 14),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 10),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // Email for sharing
+                                _buildTextField(
+                                  controller: _emailController,
+                                  label: 'Your Email Address',
+                                  icon: Icons.email,
+                                  validator: _isAdvancedSetup
+                                      ? (value) {
+                                          if (value == null ||
+                                              value.trim().isEmpty) {
+                                            return 'Please enter your email address';
+                                          }
+                                          if (!RegExp(
+                                                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                              .hasMatch(value)) {
+                                            return 'Please enter a valid email address';
+                                          }
+                                          return null;
+                                        }
+                                      : null,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'The spreadsheet will be shared with this email address',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // API Key field
+                                _buildTextField(
+                                  controller: _apiKeyController,
+                                  label: 'Google Cloud API Key',
+                                  icon: Icons.vpn_key,
+                                  validator: _isAdvancedSetup
+                                      ? (value) {
+                                          if (value == null ||
+                                              value.trim().isEmpty) {
+                                            return 'Please enter your Google Cloud API key';
+                                          }
+                                          return null;
+                                        }
+                                      : null,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'API key from your Google Cloud project',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+
                       if (_isRecoveryMode && !_isOfflineRecovery)
                         _buildTextField(
                           controller: _spreadsheetIdController,
@@ -1547,6 +1903,230 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
                             return null;
                           },
                         ),
+
+                      // Cloud Recovery Mode - Advanced Setup Toggle
+                      if (_isRecoveryMode && !_isOfflineRecovery) ...[
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: _isAdvancedSetup
+                                ? Theme.of(context)
+                                    .primaryColor
+                                    .withOpacity(0.05)
+                                : Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _isAdvancedSetup
+                                  ? Theme.of(context)
+                                      .primaryColor
+                                      .withOpacity(0.3)
+                                  : Colors.grey[300]!,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.settings,
+                                    color: _isAdvancedSetup
+                                        ? Theme.of(context).primaryColor
+                                        : Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'Advanced Setup',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Switch(
+                                    value: _isAdvancedSetup,
+                                    onChanged: _isLoading
+                                        ? null
+                                        : (value) {
+                                            setState(() {
+                                              _isAdvancedSetup = value;
+                                            });
+                                          },
+                                  ),
+                                ],
+                              ),
+                              if (!_isAdvancedSetup) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Enable advanced setup if you previously used your own Google service account for direct API access.',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                              if (_isAdvancedSetup) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                        color: Colors.orange.withOpacity(0.3)),
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(Icons.info_outline,
+                                          color: Colors.orange[700]),
+                                      const SizedBox(width: 12),
+                                      const Expanded(
+                                        child: Text(
+                                          'If you previously used advanced setup with this mosque, enable this option and provide the same service account file and API key for recovery.',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // Service Account file picker
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(8),
+                                    border:
+                                        Border.all(color: Colors.grey[300]!),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Text(
+                                            'Service Account File:',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.help_outline,
+                                                size: 18),
+                                            onPressed: () =>
+                                                _showServiceAccountHelpDialog(
+                                                    context),
+                                            tooltip:
+                                                'Help with service account files',
+                                          ),
+                                        ],
+                                      ),
+                                      if (_selectedServiceAccountPath !=
+                                          null) ...[
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          _selectedServiceAccountPath!,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                      const SizedBox(height: 12),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed: _isLoading
+                                              ? null
+                                              : _pickServiceAccountFile,
+                                          icon: const Icon(Icons.upload_file,
+                                              size: 18),
+                                          label: Text(
+                                            _selectedServiceAccountPath != null
+                                                ? 'Change Service Account File'
+                                                : 'Select Service Account File',
+                                            style:
+                                                const TextStyle(fontSize: 14),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 10),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // Email for sharing (not needed for recovery but keeping UI consistent)
+                                _buildTextField(
+                                  controller: _emailController,
+                                  label: 'Your Email Address',
+                                  icon: Icons.email,
+                                  validator: _isAdvancedSetup
+                                      ? (value) {
+                                          if (value == null ||
+                                              value.trim().isEmpty) {
+                                            return 'Please enter your email address';
+                                          }
+                                          if (!RegExp(
+                                                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                              .hasMatch(value)) {
+                                            return 'Please enter a valid email address';
+                                          }
+                                          return null;
+                                        }
+                                      : null,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'The email address used with your service account',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // API Key field
+                                _buildTextField(
+                                  controller: _apiKeyController,
+                                  label: 'Google Cloud API Key',
+                                  icon: Icons.vpn_key,
+                                  validator: _isAdvancedSetup
+                                      ? (value) {
+                                          if (value == null ||
+                                              value.trim().isEmpty) {
+                                            return 'Please enter your Google Cloud API key';
+                                          }
+                                          return null;
+                                        }
+                                      : null,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'API key from your Google Cloud project',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+
                       if (_isRecoveryMode && _isOfflineRecovery) ...[
                         const SizedBox(height: 16),
                         Container(
@@ -1608,225 +2188,296 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
 
-                      // Advanced Setup Toggle
-                      if (!_isOfflineRecovery) ...[
-                        const SizedBox(height: 24),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: _isAdvancedSetup
-                                ? Theme.of(context)
-                                    .primaryColor
-                                    .withOpacity(0.05)
-                                : Colors.grey[100],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _isAdvancedSetup
-                                  ? Theme.of(context)
-                                      .primaryColor
-                                      .withOpacity(0.3)
-                                  : Colors.grey[300]!,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.settings,
-                                    color: _isAdvancedSetup
-                                        ? Theme.of(context).primaryColor
-                                        : Colors.grey[600],
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Advanced Setup',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Switch(
-                                    value: _isAdvancedSetup,
-                                    onChanged: _isLoading
-                                        ? null
-                                        : (value) {
-                                            setState(() {
-                                              _isAdvancedSetup = value;
-                                            });
-                                          },
-                                    activeColor: Theme.of(context).primaryColor,
-                                  ),
-                                ],
-                              ),
-                              if (_isAdvancedSetup) ...[
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'Use your own Google service account for direct API access',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                  ),
+                              // Add Spreadsheet ID field for offline recovery
+                              const SizedBox(height: 24),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey[300]!),
                                 ),
-                                const SizedBox(height: 16),
-
-                                // Service Account File Picker
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border:
-                                        Border.all(color: Colors.grey[300]!),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.insert_drive_file,
-                                            color:
-                                                Theme.of(context).primaryColor,
-                                            size: 20,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              _selectedServiceAccountPath !=
-                                                      null
-                                                  ? 'Service Account JSON File:'
-                                                  : 'No Service Account File Selected',
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                              ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.cloud_outlined,
+                                          color: Theme.of(context).primaryColor,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Expanded(
+                                          child: Text(
+                                            'Connect to Cloud Database',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
-                                          IconButton(
-                                            icon: const Icon(Icons.help_outline,
-                                                size: 18),
-                                            onPressed: () =>
-                                                _showServiceAccountHelpDialog(
-                                                    context),
-                                            tooltip:
-                                                'Help with service account files',
-                                          ),
-                                        ],
-                                      ),
-                                      if (_selectedServiceAccountPath !=
-                                          null) ...[
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          _selectedServiceAccountPath!,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
-                                      const SizedBox(height: 12),
-                                      SizedBox(
-                                        width: double.infinity,
-                                        child: ElevatedButton.icon(
-                                          onPressed: _isLoading
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Enter your Spreadsheet ID to connect this data to an existing cloud database.',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _buildTextField(
+                                      controller: _spreadsheetIdController,
+                                      label: 'Spreadsheet ID',
+                                      icon: Icons.table_chart,
+                                      validator:
+                                          null, // Optional for offline recovery
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Optional: Leave empty to use without cloud connection',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // Advanced Setup Toggle for Offline Recovery
+                              const SizedBox(height: 24),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: _isAdvancedSetup
+                                      ? Theme.of(context)
+                                          .primaryColor
+                                          .withOpacity(0.05)
+                                      : Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _isAdvancedSetup
+                                        ? Theme.of(context)
+                                            .primaryColor
+                                            .withOpacity(0.3)
+                                        : Colors.grey[400]!,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.settings,
+                                          color: _isAdvancedSetup
+                                              ? Theme.of(context).primaryColor
+                                              : Colors.grey[600],
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          'Advanced Setup',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Switch(
+                                          value: _isAdvancedSetup,
+                                          onChanged: _isLoading
                                               ? null
-                                              : _pickServiceAccountFile,
-                                          icon: const Icon(Icons.upload_file,
-                                              size: 18),
-                                          label: Text(
-                                            _selectedServiceAccountPath != null
-                                                ? 'Change Service Account File'
-                                                : 'Select Service Account File',
-                                            style:
-                                                const TextStyle(fontSize: 14),
-                                          ),
-                                          style: ElevatedButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 10),
-                                          ),
+                                              : (value) {
+                                                  setState(() {
+                                                    _isAdvancedSetup = value;
+                                                  });
+                                                },
+                                        ),
+                                      ],
+                                    ),
+                                    if (!_isAdvancedSetup) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Enable advanced setup if you want to use your own Google service account for direct API access.',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[600],
                                         ),
                                       ),
                                     ],
-                                  ),
+                                    if (_isAdvancedSetup) ...[
+                                      const SizedBox(height: 16),
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                              color: Colors.orange
+                                                  .withOpacity(0.3)),
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Icon(Icons.info_outline,
+                                                color: Colors.orange[700]),
+                                            const SizedBox(width: 12),
+                                            const Expanded(
+                                              child: Text(
+                                                'Advanced setup requires a Google service account file and API key. These settings will be used after recovery.',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      // Service Account file picker
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[100],
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                              color: Colors.grey[300]!),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                const Text(
+                                                  'Service Account File:',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                IconButton(
+                                                  icon: const Icon(
+                                                      Icons.help_outline,
+                                                      size: 18),
+                                                  onPressed: () =>
+                                                      _showServiceAccountHelpDialog(
+                                                          context),
+                                                  tooltip:
+                                                      'Help with service account files',
+                                                ),
+                                              ],
+                                            ),
+                                            if (_selectedServiceAccountPath !=
+                                                null) ...[
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                _selectedServiceAccountPath!,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                            const SizedBox(height: 12),
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: ElevatedButton.icon(
+                                                onPressed: _isLoading
+                                                    ? null
+                                                    : _pickServiceAccountFile,
+                                                icon: const Icon(
+                                                    Icons.upload_file,
+                                                    size: 18),
+                                                label: Text(
+                                                  _selectedServiceAccountPath !=
+                                                          null
+                                                      ? 'Change Service Account File'
+                                                      : 'Select Service Account File',
+                                                  style: const TextStyle(
+                                                      fontSize: 14),
+                                                ),
+                                                style: ElevatedButton.styleFrom(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(vertical: 10),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      // Email for sharing
+                                      _buildTextField(
+                                        controller: _emailController,
+                                        label: 'Your Email Address',
+                                        icon: Icons.email,
+                                        validator: _isAdvancedSetup
+                                            ? (value) {
+                                                if (value == null ||
+                                                    value.trim().isEmpty) {
+                                                  return 'Please enter your email address';
+                                                }
+                                                if (!RegExp(
+                                                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                                    .hasMatch(value)) {
+                                                  return 'Please enter a valid email address';
+                                                }
+                                                return null;
+                                              }
+                                            : null,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'The spreadsheet will be shared with this email address',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      // API Key field
+                                      _buildTextField(
+                                        controller: _apiKeyController,
+                                        label: 'Google Cloud API Key',
+                                        icon: Icons.vpn_key,
+                                        validator: _isAdvancedSetup
+                                            ? (value) {
+                                                if (value == null ||
+                                                    value.trim().isEmpty) {
+                                                  return 'Please enter your Google Cloud API key';
+                                                }
+                                                return null;
+                                              }
+                                            : null,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'API key from your Google Cloud project',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-
-                                const SizedBox(height: 16),
-
-                                // Email for sharing
-                                _buildTextField(
-                                  controller: _emailController,
-                                  label: 'Your Email Address',
-                                  icon: Icons.email,
-                                  validator: _isAdvancedSetup
-                                      ? (value) {
-                                          if (value == null ||
-                                              value.trim().isEmpty) {
-                                            return 'Please enter your email address';
-                                          }
-                                          if (!RegExp(
-                                                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                              .hasMatch(value)) {
-                                            return 'Please enter a valid email address';
-                                          }
-                                          return null;
-                                        }
-                                      : null,
-                                ),
-
-                                const SizedBox(height: 12),
-                                Text(
-                                  'The spreadsheet will be shared with this email address',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 16),
-
-                                // API Key field
-                                _buildTextField(
-                                  controller: _apiKeyController,
-                                  label: 'Google Cloud API Key',
-                                  icon: Icons.vpn_key,
-                                  validator: _isAdvancedSetup
-                                      ? (value) {
-                                          if (value == null ||
-                                              value.trim().isEmpty) {
-                                            return 'Please enter your Google Cloud API key';
-                                          }
-                                          return null;
-                                        }
-                                      : null,
-                                ),
-
-                                const SizedBox(height: 12),
-                                Text(
-                                  'API key from your Google Cloud project',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ],
                           ),
                         ),
                       ],
-
                       const SizedBox(height: 40),
                       if (!_isRecoveryMode)
                         _buildActionButton(

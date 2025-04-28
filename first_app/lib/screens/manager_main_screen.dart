@@ -17,6 +17,7 @@ import '../widgets/translated_text.dart';
 import '../services/language_service.dart';
 import 'dart:async';
 import '../services/ad_service.dart'; // Import ad service
+import 'dart:math';
 
 class ManagerMainScreen extends StatefulWidget {
   const ManagerMainScreen({Key? key}) : super(key: key);
@@ -112,9 +113,111 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    // Check if trying to navigate to Summary (1) or Reports (2) tabs, which might need ad display
+    if ((index == 1 || index == 2) && _selectedIndex != index) {
+      _checkAdBeforeNavigating(index);
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  }
+
+  // Method to check if ads should be shown before navigating to premium features
+  Future<void> _checkAdBeforeNavigating(int tabIndex) async {
+    // Check if three months have passed
+    final adService = AdService();
+    final shouldShowAds = await adService.shouldShowAds();
+
+    if (!shouldShowAds) {
+      // If three months haven't passed yet, just navigate to the tab
+      setState(() {
+        _selectedIndex = tabIndex;
+      });
+      return;
+    }
+
+    // For tabs that normally require premium, check if the user has watched an ad today
+    final prefs = await SharedPreferences.getInstance();
+    final today =
+        DateTime.now().toString().substring(0, 10); // YYYY-MM-DD format
+
+    final String featureKey = tabIndex == 1 ? 'summary_tab' : 'reports_tab';
+    final lastAdWatchDate = prefs.getString('tab_ad_watch_date_$featureKey');
+    final adAlreadyWatchedToday = lastAdWatchDate == today;
+
+    if (adAlreadyWatchedToday) {
+      // If an ad was already watched today for this feature, allow access
+      setState(() {
+        _selectedIndex = tabIndex;
+      });
+      return;
+    }
+
+    // Check if a rewarded ad is available
+    if (adService.isRewardedAdReady()) {
+      // Show a dialog explaining the ad requirement
+      final featureName = tabIndex == 1 ? 'Summary' : 'Reports';
+
+      if (!mounted) return;
+
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Text('Watch an Ad for $featureName'),
+          content: Text(
+            'After 3 months of free usage, you need to watch a short ad to access $featureName features. '
+            'After watching the ad, you can use this feature without ads for the rest of the day.\n\n'
+            'Upgrade to Premium to remove all ads permanently.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showPremiumDialog(context);
+              },
+              child: const Text('View Premium'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Watch Ad'),
+            ),
+          ],
+        ),
+      ).then((shouldShowAd) async {
+        if (shouldShowAd == true) {
+          final bool rewardEarned = await adService.showRewardedAd(context);
+
+          if (rewardEarned) {
+            _logger
+                .info('User earned reward for $featureKey, saving watch date');
+            // Save the date when ad was watched for this tab
+            await prefs.setString('tab_ad_watch_date_$featureKey', today);
+
+            // Navigate to the tab
+            if (mounted) {
+              setState(() {
+                _selectedIndex = tabIndex;
+              });
+            }
+          } else {
+            _logger.info('User did not earn reward for $featureKey');
+            // Stay on the current tab
+          }
+        }
+      });
+    } else {
+      // If no ad is available, allow access this time and preload for next time
+      adService.loadRewardedAd();
+      setState(() {
+        _selectedIndex = tabIndex;
+      });
+    }
   }
 
   Future<void> _handleLogout(BuildContext context) async {
@@ -187,10 +290,16 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     final lastAdWatchDate = prefs.getString('last_ad_watch_date');
     bool adAlreadyWatchedToday = lastAdWatchDate == today;
 
-    // Check if a rewarded ad is available and show it before exporting
+    // Get the AdService
     final adService = AdService();
 
-    if (!adAlreadyWatchedToday && adService.isRewardedAdReady()) {
+    // Check if ads should be shown based on installation date (3-month check)
+    final shouldShowAds = await adService.shouldShowAds();
+
+    // Only require watching an ad if 3 months have passed and no ad was watched today
+    if (shouldShowAds &&
+        !adAlreadyWatchedToday &&
+        adService.isRewardedAdReady()) {
       // Show a dialog informing the user that they need to watch an ad once per day
       await showDialog(
         context: context,
@@ -227,69 +336,61 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
         );
         return;
       }
-    } else if (!adService.isRewardedAdReady() && !adAlreadyWatchedToday) {
-      // Load an ad for next time
+    } else if (shouldShowAds &&
+        !adService.isRewardedAdReady() &&
+        !adAlreadyWatchedToday) {
+      // Load an ad for next time if ads should be shown
       adService.loadRewardedAd();
       // If no ad is available but user hasn't watched one today, let them proceed this time
       _logger.info('No ad available but proceeding with export');
     } else {
-      _logger.info('User already watched ad today, proceeding with export');
-      // Load an ad for next time
-      adService.loadRewardedAd();
+      if (shouldShowAds) {
+        _logger.info('User already watched ad today, proceeding with export');
+        // Load an ad for next time
+        adService.loadRewardedAd();
+      } else {
+        _logger.info(
+            'Ads not required yet (less than 3 months since installation), proceeding with export');
+      }
     }
 
     setState(() {
       _isExporting = true;
     });
 
-    _logger.info('Starting Google Sheets export...');
     try {
+      _logger.info('Starting Google Sheets export...');
       _logger.info('Getting mosque name from preferences...');
-      final prefs = await SharedPreferences.getInstance();
+
       final mosqueName = prefs.getString('masjid_name');
-      final securityKey = prefs.getString('security_key_$mosqueName');
-      var existingSpreadsheetId = prefs.getString('mosque_sheet_$mosqueName');
-      final usingDirectSheets = prefs.getBool('using_direct_sheets') ?? false;
 
       if (mosqueName == null || mosqueName.isEmpty) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please complete mosque setup first'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        // Navigate to setup screen
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const FirstTimeSetupScreen(),
-          ),
-        );
-        return;
-      }
-
-      if (securityKey == null || securityKey.isEmpty) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Please complete mosque setup with security key first'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        // Navigate to setup screen
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const FirstTimeSetupScreen(),
-          ),
-        );
-        return;
+        throw Exception(
+            'Mosque name not found. Please set up the mosque name first.');
       }
 
       _logger.info('Mosque name: $mosqueName');
 
-      // Check if spreadsheetId is empty and this may be due to using offline backup
-      if (existingSpreadsheetId == null || existingSpreadsheetId.isEmpty) {
+      final securityKey = prefs.getString('security_key_$mosqueName');
+      if (securityKey == null || securityKey.isEmpty) {
+        throw Exception('Security key not found for mosque: $mosqueName');
+      }
+
+      // Check what type of service we should use (direct or script-based)
+      final usingDirectSheets = prefs.getBool('using_direct_sheets') ?? false;
+      _logger.info('Using direct Google Sheets service: $usingDirectSheets');
+
+      String? existingSpreadsheetId =
+          prefs.getString('mosque_sheet_$mosqueName');
+
+      // Log what we found in prefs
+      if (existingSpreadsheetId != null && existingSpreadsheetId.isNotEmpty) {
+        _logger.info('Found existing spreadsheet ID: $existingSpreadsheetId');
+      } else {
+        _logger
+            .info('No existing spreadsheet ID found for mosque: $mosqueName');
+
+        // Check if spreadsheetId is empty and this may be due to using offline backup
         _logger.info(
             'No spreadsheet ID found. User might have used offline backup. Prompting for ID...');
 
@@ -351,6 +452,17 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
         }
       }
 
+      // Check if the user has provided a spreadsheet ID in settings
+      final userProvidedSpreadsheetId = prefs.getString('mosque_code');
+      if (userProvidedSpreadsheetId != null &&
+          userProvidedSpreadsheetId.isNotEmpty) {
+        if (existingSpreadsheetId != userProvidedSpreadsheetId) {
+          existingSpreadsheetId = userProvidedSpreadsheetId;
+          _logger.info(
+              'Saved user-provided spreadsheet ID: $existingSpreadsheetId');
+        }
+      }
+
       // Get or create spreadsheet ID using the appropriate service
       String spreadsheetId = existingSpreadsheetId ?? '';
 
@@ -358,24 +470,40 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
         // Use the direct service approach
         _logger.info('Using direct Google Sheets service');
 
+        // Check service account path
         final serviceAccountPath = prefs.getString('service_account_path');
+        _logger.info(
+            'Service account path found: ${serviceAccountPath != null && serviceAccountPath.isNotEmpty}');
         if (serviceAccountPath == null || serviceAccountPath.isEmpty) {
           throw Exception(
               'Service account file path not found. Please complete the advanced setup again.');
         }
 
+        // Check API key
         final apiKey = prefs.getString('google_api_key');
+        _logger.info('API key found: ${apiKey != null && apiKey.isNotEmpty}');
         if (apiKey == null || apiKey.isEmpty) {
           throw Exception(
-              'Google API key not found. Please complete the advanced setup again.');
+              'Google API key not found. Please complete the advanced setup again with a valid API key.');
         }
 
+        // Check if API key looks valid (basic check)
+        if (!apiKey.startsWith('AIza')) {
+          _logger.warning(
+              'API key does not start with "AIza", might not be valid: ${apiKey.substring(0, min(10, apiKey.length))}...');
+        }
+
+        // Create direct service instance
+        _logger.info('Initializing direct Google Sheets service...');
         final directService = DirectGoogleSheetsService();
         await directService.initialize(serviceAccountPath, apiKey);
+        _logger.info('DirectGoogleSheetsService initialized successfully');
 
         if (spreadsheetId.isEmpty) {
           // Create a new spreadsheet using direct service
           final email = prefs.getString('sheets_user_email') ?? '';
+          _logger.info(
+              'Email for sharing: ${email.isNotEmpty ? email : "Not found"}');
           if (email.isEmpty) {
             throw Exception(
                 'No email address found for sharing. Please complete the advanced setup again.');
@@ -387,6 +515,9 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
               await directService.createNewSpreadsheet(mosqueName, [email]);
           await prefs.setString('mosque_sheet_$mosqueName', spreadsheetId);
           await prefs.setString('mosque_code', spreadsheetId);
+          _logger.info('New spreadsheet created with ID: $spreadsheetId');
+        } else {
+          _logger.info('Using existing spreadsheet with ID: $spreadsheetId');
         }
 
         // Get summary data
@@ -555,6 +686,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
       _logger.info('SuccessfullyExport completed Successfully');
 
       // Increment export count after successful export
+      int dailyExportCount = prefs.getInt('daily_export_count') ?? 0;
       dailyExportCount++;
       await prefs.setInt('daily_export_count', dailyExportCount);
 
@@ -567,24 +699,46 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
       );
     } catch (e, stackTrace) {
       _logger.severe('Error exporting data to Google Sheets', e, stackTrace);
-      if (!mounted) return;
 
-      String errorMessage = 'Error exporting data';
-      if (e.toString().contains('No internet connection')) {
-        errorMessage = 'Please check your internet connection and try again';
-      } else if (e.toString().contains('API rate limit')) {
-        errorMessage = 'Please wait a few minutes before trying again';
-      } else if (e.toString().contains('Authentication')) {
-        errorMessage = 'Authentication error. Please try logging in again';
+      if (mounted) {
+        // Determine if this is a setup issue that requires going back to setup
+        bool isSetupError = e.toString().contains('not found') ||
+            e.toString().contains('advanced setup') ||
+            e.toString().contains('API key');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: isSetupError
+                ? SnackBarAction(
+                    label: 'Setup',
+                    onPressed: () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const FirstTimeSetupScreen(),
+                        ),
+                      );
+                    },
+                  )
+                : null,
+          ),
+        );
+
+        // If this is a setup error, automatically navigate to setup screen after a delay
+        if (isSetupError) {
+          Future.delayed(const Duration(seconds: 6), () {
+            if (mounted) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const FirstTimeSetupScreen(),
+                ),
+              );
+            }
+          });
+        }
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
-        ),
-      );
     } finally {
       if (mounted) {
         setState(() {
@@ -755,6 +909,24 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Free period notice
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.yellow.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Ads appear only after 3 months of free usage',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.amber,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),

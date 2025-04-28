@@ -1,0 +1,186 @@
+Date : 2025-04-28 03:48:22
+Directory : d:\flutter_app\first_app
+Total : 103 files,  27288 codes, 1495 comments, 2414 blanks, all 31197 lines
+
+Languages
++------------+------------+------------+------------+------------+------------+
+| language   | files      | code       | comment    | blank      | total      |
++------------+------------+------------+------------+------------+------------+
+| Dart       |         54 |     25,409 |      1,211 |      2,068 |     28,688 |
+| XML        |         11 |        563 |         54 |         14 |        631 |
+| C++        |         16 |        560 |        131 |        189 |        880 |
+| Markdown   |          5 |        234 |          0 |         94 |        328 |
+| MS SQL     |          1 |        226 |          0 |          0 |        226 |
+| JSON       |          4 |        127 |          0 |          1 |        128 |
+| YAML       |          3 |         71 |         77 |         20 |        168 |
+| Swift      |          6 |         71 |          7 |         21 |         99 |
+| HTML       |          1 |         19 |         15 |          5 |         39 |
+| Properties |          2 |          8 |          0 |          2 |         10 |
++------------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                   | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                      |        103 |     27,288 |      1,495 |      2,414 |     31,197 |
+| . (Files)                                                                              |          7 |        302 |         77 |        112 |        491 |
+| android                                                                                |          9 |         82 |         52 |         12 |        146 |
+| android (Files)                                                                        |          1 |          3 |          0 |          1 |          4 |
+| android\app                                                                            |          7 |         74 |         52 |         10 |        136 |
+| android\app\src                                                                        |          7 |         74 |         52 |         10 |        136 |
+| android\app\src\debug                                                                  |          1 |          3 |          4 |          1 |          8 |
+| android\app\src\main                                                                   |          5 |         68 |         44 |          8 |        120 |
+| android\app\src\main (Files)                                                           |          1 |         42 |         12 |          2 |         56 |
+| android\app\src\main\res                                                               |          4 |         26 |         32 |          6 |         64 |
+| android\app\src\main\res\drawable                                                      |          1 |          4 |          7 |          2 |         13 |
+| android\app\src\main\res\drawable-v21                                                  |          1 |          4 |          7 |          2 |         13 |
+| android\app\src\main\res\values                                                        |          1 |          9 |          9 |          1 |         19 |
+| android\app\src\main\res\values-night                                                  |          1 |          9 |          9 |          1 |         19 |
+| android\app\src\profile                                                                |          1 |          3 |          4 |          1 |          8 |
+| android\gradle                                                                         |          1 |          5 |          0 |          1 |          6 |
+| android\gradle\wrapper                                                                 |          1 |          5 |          0 |          1 |          6 |
+| assets                                                                                 |          2 |        311 |          0 |          1 |        312 |
+| assets (Files)                                                                         |          1 |        226 |          0 |          0 |        226 |
+| assets\images                                                                          |          1 |         85 |          0 |          1 |         86 |
+| ios                                                                                    |          8 |        108 |          4 |         12 |        124 |
+| ios\Runner                                                                             |          7 |        101 |          2 |          8 |        111 |
+| ios\Runner (Files)                                                                     |          2 |         13 |          0 |          3 |         16 |
+| ios\RunnerTests                                                                        |          1 |          7 |          2 |          4 |         13 |
+| ios\Runner\Assets.xcassets                                                             |          3 |         27 |          0 |          3 |         30 |
+| ios\Runner\Assets.xcassets\AppIcon.appiconset                                          |          1 |          1 |          0 |          0 |          1 |
+| ios\Runner\Assets.xcassets\LaunchImage.imageset                                        |          2 |         26 |          0 |          3 |         29 |
+| ios\Runner\Base.lproj                                                                  |          2 |         61 |          2 |          2 |         65 |
+| lib                                                                                    |         53 |     25,395 |      1,201 |      2,061 |     28,657 |
+| lib (Files)                                                                            |          1 |        207 |         28 |         36 |        271 |
+| lib\models                                                                             |          8 |        374 |         20 |         49 |        443 |
+| lib\screens                                                                            |         21 |     20,132 |        802 |      1,301 |     22,235 |
+| lib\services                                                                           |         12 |      3,501 |        288 |        594 |      4,383 |
+| lib\utils                                                                              |          3 |        150 |         16 |         25 |        191 |
+| lib\widgets                                                                            |          8 |      1,031 |         47 |         56 |      1,134 |
+| linux                                                                                  |          5 |        111 |         37 |         45 |        193 |
+| linux\flutter                                                                          |          2 |         16 |          9 |         11 |         36 |
+| linux\runner                                                                           |          3 |         95 |         28 |         34 |        157 |
+| macos                                                                                  |          6 |        463 |          5 |         16 |        484 |
+| macos\Flutter                                                                          |          1 |         22 |          3 |          4 |         29 |
+| macos\Runner                                                                           |          4 |        434 |          0 |          8 |        442 |
+| macos\Runner (Files)                                                                   |          2 |         23 |          0 |          7 |         30 |
+| macos\RunnerTests                                                                      |          1 |          7 |          2 |          4 |         13 |
+| macos\Runner\Assets.xcassets                                                           |          1 |         68 |          0 |          0 |         68 |
+| macos\Runner\Assets.xcassets\AppIcon.appiconset                                        |          1 |         68 |          0 |          0 |         68 |
+| macos\Runner\Base.lproj                                                                |          1 |        343 |          0 |          1 |        344 |
+| test                                                                                   |          1 |         14 |         10 |          7 |         31 |
+| web                                                                                    |          2 |         54 |         15 |          5 |         74 |
+| windows                                                                                |         10 |        448 |         94 |        143 |        685 |
+| windows\flutter                                                                        |          2 |         20 |          9 |         11 |         40 |
+| windows\runner                                                                         |          8 |        428 |         85 |        132 |        645 |
++----------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| filename                                                                               | language   | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| d:\flutter_app\first_app\README-QURAN-INTEGRATION.md                                   | Markdown   |         48 |          0 |         27 |         75 |
+| d:\flutter_app\first_app\README-TROUBLESHOOTING.md                                     | Markdown   |         81 |          0 |         25 |        106 |
+| d:\flutter_app\first_app\README.md                                                     | Markdown   |         10 |          0 |          7 |         17 |
+| d:\flutter_app\first_app\README_ADVANCED_SETUP.md                                      | Markdown   |         92 |          0 |         33 |        125 |
+| d:\flutter_app\first_app\analysis_options.yaml                                         | YAML       |          3 |         22 |          4 |         29 |
+| d:\flutter_app\first_app\android\app\src\debug\AndroidManifest.xml                     | XML        |          3 |          4 |          1 |          8 |
+| d:\flutter_app\first_app\android\app\src\main\AndroidManifest.xml                      | XML        |         42 |         12 |          2 |         56 |
+| d:\flutter_app\first_app\android\app\src\main\res\drawable-v21\launch_background.xml   | XML        |          4 |          7 |          2 |         13 |
+| d:\flutter_app\first_app\android\app\src\main\res\drawable\launch_background.xml       | XML        |          4 |          7 |          2 |         13 |
+| d:\flutter_app\first_app\android\app\src\main\res\values-night\styles.xml              | XML        |          9 |          9 |          1 |         19 |
+| d:\flutter_app\first_app\android\app\src\main\res\values\styles.xml                    | XML        |          9 |          9 |          1 |         19 |
+| d:\flutter_app\first_app\android\app\src\profile\AndroidManifest.xml                   | XML        |          3 |          4 |          1 |          8 |
+| d:\flutter_app\first_app\android\gradle.properties                                     | Properties |          3 |          0 |          1 |          4 |
+| d:\flutter_app\first_app\android\gradle\wrapper\gradle-wrapper.properties              | Properties |          5 |          0 |          1 |          6 |
+| d:\flutter_app\first_app\assets\images\mosque.svg                                      | XML        |         85 |          0 |          1 |         86 |
+| d:\flutter_app\first_app\assets\quran.sqlite                                           | MS SQL     |        226 |          0 |          0 |        226 |
+| d:\flutter_app\first_app\devtools_options.yaml                                         | YAML       |          3 |          0 |          1 |          4 |
+| d:\flutter_app\first_app\ios\RunnerTests\RunnerTests.swift                             | Swift      |          7 |          2 |          4 |         13 |
+| d:\flutter_app\first_app\ios\Runner\AppDelegate.swift                                  | Swift      |         12 |          0 |          2 |         14 |
+| d:\flutter_app\first_app\ios\Runner\Assets.xcassets\AppIcon.appiconset\Contents.json   | JSON       |          1 |          0 |          0 |          1 |
+| d:\flutter_app\first_app\ios\Runner\Assets.xcassets\LaunchImage.imageset\Contents.json | JSON       |         23 |          0 |          1 |         24 |
+| d:\flutter_app\first_app\ios\Runner\Assets.xcassets\LaunchImage.imageset\README.md     | Markdown   |          3 |          0 |          2 |          5 |
+| d:\flutter_app\first_app\ios\Runner\Base.lproj\LaunchScreen.storyboard                 | XML        |         36 |          1 |          1 |         38 |
+| d:\flutter_app\first_app\ios\Runner\Base.lproj\Main.storyboard                         | XML        |         25 |          1 |          1 |         27 |
+| d:\flutter_app\first_app\ios\Runner\Runner-Bridging-Header.h                           | C++        |          1 |          0 |          1 |          2 |
+| d:\flutter_app\first_app\lib\main.dart                                                 | Dart       |        207 |         28 |         36 |        271 |
+| d:\flutter_app\first_app\lib\models\account.dart                                       | Dart       |         24 |          0 |          3 |         27 |
+| d:\flutter_app\first_app\lib\models\category.dart                                      | Dart       |         22 |          0 |          4 |         26 |
+| d:\flutter_app\first_app\lib\models\deduction_model.dart                               | Dart       |         45 |          3 |          8 |         56 |
+| d:\flutter_app\first_app\lib\models\payer.dart                                         | Dart       |         20 |          0 |          3 |         23 |
+| d:\flutter_app\first_app\lib\models\summary_model.dart                                 | Dart       |         61 |          3 |          6 |         70 |
+| d:\flutter_app\first_app\lib\models\surah.dart                                         | Dart       |        108 |          9 |         13 |        130 |
+| d:\flutter_app\first_app\lib\models\transaction.dart                                   | Dart       |         42 |          0 |          4 |         46 |
+| d:\flutter_app\first_app\lib\models\transaction_model.dart                             | Dart       |         52 |          5 |          8 |         65 |
+| d:\flutter_app\first_app\lib\screens\admin_screen.dart                                 | Dart       |        533 |          3 |         15 |        551 |
+| d:\flutter_app\first_app\lib\screens\category_screen.dart                              | Dart       |        446 |          8 |         17 |        471 |
+| d:\flutter_app\first_app\lib\screens\cloud_database_screen.dart                        | Dart       |        493 |          0 |         12 |        505 |
+| d:\flutter_app\first_app\lib\screens\first_time_setup_screen.dart                      | Dart       |      2,640 |        102 |        202 |      2,944 |
+| d:\flutter_app\first_app\lib\screens\home_screen.dart                                  | Dart       |      1,826 |        108 |        145 |      2,079 |
+| d:\flutter_app\first_app\lib\screens\language_settings_screen.dart                     | Dart       |        297 |          9 |         22 |        328 |
+| d:\flutter_app\first_app\lib\screens\manager_main_screen.dart                          | Dart       |        770 |         79 |         84 |        933 |
+| d:\flutter_app\first_app\lib\screens\manager_screen.dart                               | Dart       |        619 |          9 |         25 |        653 |
+| d:\flutter_app\first_app\lib\screens\manager_settings_screen.dart                      | Dart       |      1,063 |         22 |         55 |      1,140 |
+| d:\flutter_app\first_app\lib\screens\monthly_amount_chart_screen.dart                  | Dart       |        375 |          6 |         19 |        400 |
+| d:\flutter_app\first_app\lib\screens\mosque_screen.dart                                | Dart       |      3,328 |        143 |        228 |      3,699 |
+| d:\flutter_app\first_app\lib\screens\payer_screen.dart                                 | Dart       |        443 |          8 |         16 |        467 |
+| d:\flutter_app\first_app\lib\screens\prayer_timings_screen.dart                        | Dart       |        581 |         23 |         44 |        648 |
+| d:\flutter_app\first_app\lib\screens\premium_screen.dart                               | Dart       |        308 |         16 |          9 |        333 |
+| d:\flutter_app\first_app\lib\screens\quran_continuous_screen.dart                      | Dart       |      1,268 |        122 |        136 |      1,526 |
+| d:\flutter_app\first_app\lib\screens\quran_screen.dart                                 | Dart       |        792 |         24 |         38 |        854 |
+| d:\flutter_app\first_app\lib\screens\reports_screen.dart                               | Dart       |      1,799 |         85 |        103 |      1,987 |
+| d:\flutter_app\first_app\lib\screens\role_selection_screen.dart                        | Dart       |        298 |          1 |         21 |        320 |
+| d:\flutter_app\first_app\lib\screens\settings_screen.dart                              | Dart       |        883 |         15 |         36 |        934 |
+| d:\flutter_app\first_app\lib\screens\summary_screen.dart                               | Dart       |        445 |          3 |         23 |        471 |
+| d:\flutter_app\first_app\lib\screens\tabular_transaction_history_screen.dart           | Dart       |        925 |         16 |         51 |        992 |
+| d:\flutter_app\first_app\lib\services\ad_service.dart                                  | Dart       |        115 |         13 |         20 |        148 |
+| d:\flutter_app\first_app\lib\services\app_session_service.dart                         | Dart       |         48 |          3 |         13 |         64 |
+| d:\flutter_app\first_app\lib\services\data_recovery_service.dart                       | Dart       |        192 |         12 |         28 |        232 |
+| d:\flutter_app\first_app\lib\services\database_service.dart                            | Dart       |        283 |         13 |         45 |        341 |
+| d:\flutter_app\first_app\lib\services\direct_google_sheets_service.dart                | Dart       |        514 |         36 |         94 |        644 |
+| d:\flutter_app\first_app\lib\services\google_sheets_export_service.dart                | Dart       |        252 |          3 |         44 |        299 |
+| d:\flutter_app\first_app\lib\services\google_sheets_service.dart                       | Dart       |        656 |         79 |        122 |        857 |
+| d:\flutter_app\first_app\lib\services\language_service.dart                            | Dart       |        687 |         77 |         78 |        842 |
+| d:\flutter_app\first_app\lib\services\quran_database_service.dart                      | Dart       |        215 |         26 |         50 |        291 |
+| d:\flutter_app\first_app\lib\services\script_based_export_service.dart                 | Dart       |        215 |         10 |         49 |        274 |
+| d:\flutter_app\first_app\lib\services\script_based_recovery_service.dart               | Dart       |        196 |         14 |         32 |        242 |
+| d:\flutter_app\first_app\lib\services\user_database_service.dart                       | Dart       |        128 |          2 |         19 |        149 |
+| d:\flutter_app\first_app\lib\utils\asset_utils.dart                                    | Dart       |         76 |          9 |         11 |         96 |
+| d:\flutter_app\first_app\lib\utils\image_cache_manager.dart                            | Dart       |         36 |          7 |          6 |         49 |
+| d:\flutter_app\first_app\lib\utils\logger.dart                                         | Dart       |         38 |          0 |          8 |         46 |
+| d:\flutter_app\first_app\lib\widgets\app_lifecycle_observer.dart                       | Dart       |         19 |          0 |          2 |         21 |
+| d:\flutter_app\first_app\lib\widgets\bottom_nav_bar.dart                               | Dart       |         82 |          4 |          5 |         91 |
+| d:\flutter_app\first_app\lib\widgets\feature_grid.dart                                 | Dart       |        152 |          5 |          4 |        161 |
+| d:\flutter_app\first_app\lib\widgets\prayer_card.dart                                  | Dart       |        298 |         15 |         13 |        326 |
+| d:\flutter_app\first_app\lib\widgets\surah_tile.dart                                   | Dart       |        109 |          3 |          7 |        119 |
+| d:\flutter_app\first_app\lib\widgets\top_bar.dart                                      | Dart       |        184 |          6 |          9 |        199 |
+| d:\flutter_app\first_app\lib\widgets\translated_text.dart                              | Dart       |         53 |          8 |         12 |         73 |
+| d:\flutter_app\first_app\lib\widgets\verse_of_the_day.dart                             | Dart       |        134 |          6 |          4 |        144 |
+| d:\flutter_app\first_app\linux\flutter\generated_plugin_registrant.cc                  | C++        |         11 |          4 |          5 |         20 |
+| d:\flutter_app\first_app\linux\flutter\generated_plugin_registrant.h                   | C++        |          5 |          5 |          6 |         16 |
+| d:\flutter_app\first_app\linux\runner\main.cc                                          | C++        |          5 |          0 |          2 |          7 |
+| d:\flutter_app\first_app\linux\runner\my_application.cc                                | C++        |         83 |         21 |         27 |        131 |
+| d:\flutter_app\first_app\linux\runner\my_application.h                                 | C++        |          7 |          7 |          5 |         19 |
+| d:\flutter_app\first_app\macos\Flutter\GeneratedPluginRegistrant.swift                 | Swift      |         22 |          3 |          4 |         29 |
+| d:\flutter_app\first_app\macos\RunnerTests\RunnerTests.swift                           | Swift      |          7 |          2 |          4 |         13 |
+| d:\flutter_app\first_app\macos\Runner\AppDelegate.swift                                | Swift      |         11 |          0 |          3 |         14 |
+| d:\flutter_app\first_app\macos\Runner\Assets.xcassets\AppIcon.appiconset\Contents.json | JSON       |         68 |          0 |          0 |         68 |
+| d:\flutter_app\first_app\macos\Runner\Base.lproj\MainMenu.xib                          | XML        |        343 |          0 |          1 |        344 |
+| d:\flutter_app\first_app\macos\Runner\MainFlutterWindow.swift                          | Swift      |         12 |          0 |          4 |         16 |
+| d:\flutter_app\first_app\pubspec.yaml                                                  | YAML       |         65 |         55 |         15 |        135 |
+| d:\flutter_app\first_app\test\widget_test.dart                                         | Dart       |         14 |         10 |          7 |         31 |
+| d:\flutter_app\first_app\web\index.html                                                | HTML       |         19 |         15 |          5 |         39 |
+| d:\flutter_app\first_app\web\manifest.json                                             | JSON       |         35 |          0 |          0 |         35 |
+| d:\flutter_app\first_app\windows\flutter\generated_plugin_registrant.cc                | C++        |         15 |          4 |          5 |         24 |
+| d:\flutter_app\first_app\windows\flutter\generated_plugin_registrant.h                 | C++        |          5 |          5 |          6 |         16 |
+| d:\flutter_app\first_app\windows\runner\flutter_window.cpp                             | C++        |         49 |          7 |         16 |         72 |
+| d:\flutter_app\first_app\windows\runner\flutter_window.h                               | C++        |         20 |          5 |          9 |         34 |
+| d:\flutter_app\first_app\windows\runner\main.cpp                                       | C++        |         30 |          4 |         10 |         44 |
+| d:\flutter_app\first_app\windows\runner\resource.h                                     | C++        |          9 |          6 |          2 |         17 |
+| d:\flutter_app\first_app\windows\runner\utils.cpp                                      | C++        |         54 |          2 |         10 |         66 |
+| d:\flutter_app\first_app\windows\runner\utils.h                                        | C++        |          8 |          6 |          6 |         20 |
+| d:\flutter_app\first_app\windows\runner\win32_window.cpp                               | C++        |        210 |         24 |         55 |        289 |
+| d:\flutter_app\first_app\windows\runner\win32_window.h                                 | C++        |         48 |         31 |         24 |        103 |
+| Total                                                                                  |            |     27,288 |      1,495 |      2,414 |     31,197 |
++----------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+

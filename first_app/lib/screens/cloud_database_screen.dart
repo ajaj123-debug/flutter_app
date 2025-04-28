@@ -109,20 +109,29 @@ class _CloudDatabaseScreenState extends State<CloudDatabaseScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
+                          Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 12,
                             children: [
-                              const Icon(Icons.cloud_outlined,
-                                  color: Colors.blue),
-                              const SizedBox(width: 12),
-                              const Text(
-                                'Cloud Database Integration',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.cloud_outlined,
+                                      color: Colors.blue),
+                                  const SizedBox(width: 12),
+                                  const Flexible(
+                                    child: Text(
+                                      'Cloud Database Integration',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              if (_usingDirectSheets) ...[
-                                const Spacer(),
+                              if (_usingDirectSheets)
                                 Chip(
                                   label: const Text('Advanced'),
                                   backgroundColor: Colors.blue.withOpacity(0.1),
@@ -131,7 +140,6 @@ class _CloudDatabaseScreenState extends State<CloudDatabaseScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ],
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -171,6 +179,7 @@ class _CloudDatabaseScreenState extends State<CloudDatabaseScreen> {
                                       fontSize: 16,
                                       fontFamily: 'monospace',
                                     ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 IconButton(
@@ -194,6 +203,7 @@ class _CloudDatabaseScreenState extends State<CloudDatabaseScreen> {
                             const Divider(),
                             const SizedBox(height: 16),
                             Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.settings, color: Colors.purple[700]),
                                 const SizedBox(width: 12),
@@ -246,14 +256,18 @@ class _CloudDatabaseScreenState extends State<CloudDatabaseScreen> {
                               ),
                               const SizedBox(height: 8),
                               Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   const Icon(Icons.email,
                                       size: 16, color: Colors.grey),
                                   const SizedBox(width: 8),
-                                  Text(
-                                    _sheetsUserEmail!,
-                                    style: const TextStyle(
-                                      fontSize: 16,
+                                  Flexible(
+                                    child: Text(
+                                      _sheetsUserEmail!,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
@@ -298,6 +312,7 @@ class _CloudDatabaseScreenState extends State<CloudDatabaseScreen> {
                                     color: Colors.orange.withOpacity(0.3)),
                               ),
                               child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Icon(Icons.info_outline,
                                       color: Colors.orange[700]),
@@ -372,6 +387,7 @@ class _CloudDatabaseScreenState extends State<CloudDatabaseScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.open_in_new,
                                     color: Colors.green[700]),
@@ -447,6 +463,7 @@ class _CloudDatabaseScreenState extends State<CloudDatabaseScreen> {
 
   Widget _buildInfoItem(String title, String description, IconData icon) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           padding: const EdgeInsets.all(8),

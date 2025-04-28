@@ -19,6 +19,7 @@ class DirectGoogleSheetsService {
   bool _isInitialized = false;
   static const String _recoverySheetName = 'Recovery_Data';
   String? _apiKey;
+  String? _serviceAccountPath;
 
   DirectGoogleSheetsService() {
     _logger.info('DirectGoogleSheetsService initialized');
@@ -74,6 +75,7 @@ class DirectGoogleSheetsService {
       }
 
       _apiKey = apiKey;
+      _serviceAccountPath = serviceAccountPath;
       _logger.info('API Key set: ${_apiKey != null ? 'Yes' : 'No'}');
 
       _logger.info('Getting credentials from file...');
@@ -85,14 +87,14 @@ class DirectGoogleSheetsService {
         _scopes,
       );
 
-      // Create an API key-enabled HTTP client by wrapping the auth client
-      final apiKeyClient = _ApiKeyHttpClient(authClient, apiKey);
+      // Create a simpler direct HTTP client instead of using the wrapper
+      final directClient = _DirectHttpClient(authClient, apiKey);
 
       _logger.info('Creating Sheets API client...');
-      _sheetsApi = SheetsApi(apiKeyClient);
+      _sheetsApi = SheetsApi(directClient);
 
       _logger.info('Creating Drive API client...');
-      _driveApi = drive.DriveApi(apiKeyClient);
+      _driveApi = drive.DriveApi(directClient);
 
       _isInitialized = true;
       _logger.info('Direct Google Sheets service initialized Successfully');
@@ -141,14 +143,157 @@ class DirectGoogleSheetsService {
       final spreadsheet = Spreadsheet()..properties = properties;
 
       _logger.info('Sending create spreadsheet request...');
-      final response = await _sheetsApi!.spreadsheets.create(spreadsheet);
-      final spreadsheetId = response.spreadsheetId!;
 
-      _logger.info('Sharing spreadsheet with users...');
-      await _shareSpreadsheetWithUsers(spreadsheetId, shareWithEmails);
+      try {
+        // Add retry logic in case of connection issues
+        int retryCount = 0;
+        const maxRetries = 3;
+        Spreadsheet? response;
 
-      _logger.info('Created new spreadsheet with ID: $spreadsheetId');
-      return spreadsheetId;
+        while (retryCount < maxRetries) {
+          try {
+            _logger.info(
+                'Attempt ${retryCount + 1}: Creating spreadsheet directly through API client');
+            response = await _sheetsApi!.spreadsheets.create(spreadsheet);
+            _logger.info('Success! Spreadsheet created.');
+            break; // Success, exit the retry loop
+          } catch (e) {
+            retryCount++;
+            _logger.warning(
+                'Error creating spreadsheet (attempt $retryCount/$maxRetries): $e');
+
+            if (e
+                .toString()
+                .contains('Content size below specified contentLength')) {
+              _logger.warning(
+                  'Content length error detected, trying different approach');
+
+              // On last retry, try a different approach with minimal data
+              if (retryCount >= maxRetries - 1) {
+                _logger.info(
+                    'Trying fallback approach with minimal spreadsheet...');
+                try {
+                  // Create a minimal spreadsheet with just the bare essentials
+                  // This might bypass the contentLength issue
+                  final minimalSpreadsheet = Spreadsheet();
+                  minimalSpreadsheet.properties = SpreadsheetProperties()
+                    ..title = mosqueName;
+
+                  response =
+                      await _sheetsApi!.spreadsheets.create(minimalSpreadsheet);
+                  _logger.info('Fallback approach succeeded!');
+                  break;
+                } catch (fallbackError) {
+                  _logger
+                      .warning('Fallback approach also failed: $fallbackError');
+                }
+              }
+            }
+
+            if (retryCount >= maxRetries) {
+              _logger.warning(
+                  'Maximum retry attempts reached, will try final fallback method');
+              continue; // We'll continue to the emergency fallback
+            }
+
+            // Wait before retrying
+            await Future.delayed(Duration(seconds: 2));
+          }
+        }
+
+        if (response != null) {
+          final spreadsheetId = response.spreadsheetId!;
+          _logger
+              .info('Successfully created spreadsheet with ID: $spreadsheetId');
+
+          _logger.info('Sharing spreadsheet with users...');
+          await _shareSpreadsheetWithUsers(spreadsheetId, shareWithEmails);
+
+          _logger.info('Created new spreadsheet with ID: $spreadsheetId');
+          return spreadsheetId;
+        }
+
+        // If we got here, all regular attempts failed
+        throw Exception(
+            'Failed to create spreadsheet after $maxRetries attempts, switching to bypass mode');
+      } catch (e) {
+        _logger.severe('API request error, will try alternate method: $e');
+
+        // Last resort: Create a bypass client and try with direct HTTP
+        try {
+          _logger.info(
+              'Attempting to create new credentials and auth client for bypass...');
+
+          // Get service account credentials again
+          final credentials = await clientViaServiceAccount(
+            (await _getCredentialsFromFile(_serviceAccountPath!)),
+            _scopes,
+          );
+
+          _logger.info(
+              'Successfully created new auth client, attempting direct spreadsheet creation');
+
+          // Create a minimal spreadsheet via the new auth client
+          final sheetsApi = SheetsApi(credentials);
+          final minimalSpreadsheet = Spreadsheet();
+          minimalSpreadsheet.properties = SpreadsheetProperties()
+            ..title = '$mosqueName - Mosque Management';
+
+          // Try with the new client directly
+          _logger.info('Sending create request via bypass client...');
+          final response =
+              await sheetsApi.spreadsheets.create(minimalSpreadsheet);
+
+          if (response.spreadsheetId != null) {
+            final spreadsheetId = response.spreadsheetId!;
+            _logger.info(
+                'Bypass successful! Created spreadsheet with ID: $spreadsheetId');
+
+            // Try to share the spreadsheet
+            try {
+              final driveApi = drive.DriveApi(credentials);
+
+              for (String email in shareWithEmails) {
+                _logger.info('Sharing spreadsheet with user: $email');
+                final permission = drive.Permission()
+                  ..type = 'user'
+                  ..role = 'writer'
+                  ..emailAddress = email;
+
+                await driveApi.permissions.create(
+                  permission,
+                  spreadsheetId,
+                  sendNotificationEmail: true,
+                );
+              }
+            } catch (sharingError) {
+              _logger.warning(
+                  'Error sharing spreadsheet in bypass mode: $sharingError');
+              // Continue even if sharing fails
+            }
+
+            return spreadsheetId;
+          } else {
+            throw Exception('Bypass created a spreadsheet but ID is null');
+          }
+        } catch (bypassError) {
+          _logger.severe('Bypass method failed: $bypassError');
+
+          // Check for common errors and provide more helpful messages
+          if (e
+              .toString()
+              .contains('Content size below specified contentLength')) {
+            throw Exception(
+                'Network error when creating spreadsheet. This may be due to a connection issue or proxy. Please ensure you have a stable internet connection and try again.');
+          } else if (e.toString().contains('Authorization')) {
+            throw Exception(
+                'Authorization error. Please check your service account credentials and ensure they have access to the Sheets and Drive APIs.');
+          } else {
+            throw Exception(
+                'Failed to create spreadsheet after multiple attempts. Last error: $bypassError');
+          }
+        }
+      }
     } catch (e, stackTrace) {
       _logger.severe('Error creating spreadsheet', e, stackTrace);
       rethrow;
@@ -209,6 +354,7 @@ class DirectGoogleSheetsService {
       case 'TxnTyp.ded':
         return 'TransactionType.deduction';
       default:
+      
         return shortType;
     }
   }
@@ -236,36 +382,28 @@ class DirectGoogleSheetsService {
 
       // Prepare data for recovery
       final recoveryData = <List<dynamic>>[
-        ['Table', 'Data'], // Header row for non-transaction tables
-        [
-          'Table',
-          'ID',
-          'Payer ID',
-          'Amount',
-          'Type',
-          'Category',
-          'Date'
-        ], // Header row for transactions
+        ['Table', 'Data'], // Header row for all tables
       ];
 
-      // 1. Payers table
+      // 1. Payers table - comma-separated list of names
       final payersData = payers.map((p) => p.name).join(',');
       recoveryData.add(['Payers', payersData]);
 
-      // 2. Transactions table - one row per transaction
+      // 2. Transactions table - one row per transaction with pipe-separated values
       for (var transaction in transactions) {
-        recoveryData.add([
-          'Transactions',
+        final txnData = [
           transaction.id.toString(),
           transaction.payerId.toString(),
           transaction.amount.toString(),
           _getShortTransactionType(transaction.type.toString()),
           transaction.category,
           transaction.date.toUtc().toIso8601String(),
-        ]);
+        ].join('|');
+
+        recoveryData.add(['Transactions', txnData]);
       }
 
-      // 3. Categories table
+      // 3. Categories table - comma-separated list of names
       final categoriesData = categories.map((c) => c.name).join(',');
       recoveryData.add(['Categories', categoriesData]);
 
@@ -317,7 +455,7 @@ class DirectGoogleSheetsService {
       _logger.info('Fetching recovery data from sheet...');
       final response = await _sheetsApi!.spreadsheets.values.get(
         spreadsheetId,
-        '$_recoverySheetName!A1:G1000',
+        '$_recoverySheetName!A1:B1000',
       );
 
       if (response.values == null || response.values!.isEmpty) {
@@ -337,75 +475,73 @@ class DirectGoogleSheetsService {
         // Restore data from recovery sheet
         _logger.info('Restoring data from recovery sheet...');
         for (var row in response.values!) {
-          if (row.isEmpty) continue;
+          if (row.isEmpty || row.length < 2) continue;
 
           final tableName = row[0] as String;
+          final data = row[1] as String;
 
-          // Skip header rows
-          if (tableName == 'Table' && row.length > 1 && row[1] == 'Data') {
-            continue;
-          }
-          if (tableName == 'Table' && row.length > 1 && row[1] == 'ID') {
+          // Skip header row
+          if (tableName == 'Table' && data == 'Data') {
             continue;
           }
 
           switch (tableName) {
             case 'Payers':
-              if (row.length >= 2) {
-                final payers = (row[1] as String).split(',');
-                for (var payer in payers) {
-                  await txn.insert('payers', {'name': payer});
-                }
+              final payers = data.split(',');
+              for (var payer in payers) {
+                await txn.insert('payers', {'name': payer});
               }
               break;
 
             case 'Transactions':
-              if (row.length >= 7) {
-                try {
-                  final dateStr = row[6] as String;
+              try {
+                final parts = data.split('|');
+                if (parts.length >= 6) {
+                  final id = int.parse(parts[0]);
+                  final payerId = int.parse(parts[1]);
+                  final amount = double.parse(parts[2]);
+                  final type = _getFullTransactionType(parts[3]);
+                  final category = parts[4];
+                  final dateStr = parts[5];
                   final date = DateTime.parse(dateStr).toLocal();
+
                   await txn.insert('transactions', {
-                    'id': int.parse(row[1].toString()),
-                    'payer_id': int.parse(row[2].toString()),
-                    'amount': double.parse(row[3].toString()),
-                    'type': _getFullTransactionType(row[4] as String),
-                    'category': row[5],
+                    'id': id,
+                    'payer_id': payerId,
+                    'amount': amount,
+                    'type': type,
+                    'category': category,
                     'date': date.toIso8601String(),
                   });
-                } catch (e) {
-                  _logger.warning(
-                      'Error parsing transaction date: ${row[6]}', e);
-                  continue;
                 }
+              } catch (e) {
+                _logger.warning('Error parsing transaction data: $data', e);
+                continue;
               }
               break;
 
             case 'Categories':
-              if (row.length >= 2) {
-                final categories = (row[1] as String).split(',');
-                for (var category in categories) {
-                  await txn.insert('categories', {'name': category});
-                }
+              final categories = data.split(',');
+              for (var category in categories) {
+                await txn.insert('categories', {'name': category});
               }
               break;
 
             case 'Settings':
-              if (row.length >= 2) {
-                final settings = (row[1] as String).split(',');
-                for (var setting in settings) {
-                  final parts = setting.split('=');
-                  if (parts.length == 2) {
-                    switch (parts[0]) {
-                      case 'masjid_name':
-                        await prefs.setString('masjid_name', parts[1]);
-                        break;
-                      case 'report_header':
-                        await prefs.setString('report_header', parts[1]);
-                        break;
-                      case 'security_key':
-                        storedSecurityKey = parts[1];
-                        break;
-                    }
+              final settings = data.split(',');
+              for (var setting in settings) {
+                final parts = setting.split('=');
+                if (parts.length == 2) {
+                  switch (parts[0]) {
+                    case 'masjid_name':
+                      await prefs.setString('masjid_name', parts[1]);
+                      break;
+                    case 'report_header':
+                      await prefs.setString('report_header', parts[1]);
+                      break;
+                    case 'security_key':
+                      storedSecurityKey = parts[1];
+                      break;
                   }
                 }
               }
@@ -464,33 +600,45 @@ class DirectGoogleSheetsService {
   }
 }
 
-// Custom HTTP client that adds API key to all requests
-class _ApiKeyHttpClient extends http.BaseClient {
+// Replace the previous HTTP client with a simpler implementation
+class _DirectHttpClient extends http.BaseClient {
   final http.Client _inner;
   final String _apiKey;
+  final logging.Logger _logger = logging.Logger('_DirectHttpClient');
 
-  _ApiKeyHttpClient(this._inner, this._apiKey);
+  _DirectHttpClient(this._inner, this._apiKey);
 
   @override
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
-    // Add API key as a query parameter to all requests
-    final url = request.url;
-    final newUri = url.replace(
-      queryParameters: {
-        ...url.queryParameters,
-        'key': _apiKey,
-      },
-    );
-    request = http.Request(request.method, newUri)
-      ..headers.addAll(request.headers)
-      ..followRedirects = request.followRedirects
-      ..persistentConnection = request.persistentConnection
-      ..maxRedirects = request.maxRedirects;
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    try {
+      _logger.info('Sending request to: ${request.url}');
 
-    if (request is http.Request) {
-      (request as http.Request).bodyBytes = (request as http.Request).bodyBytes;
+      // For debugging, log headers (without auth tokens)
+      final safeHeaders = Map<String, String>.from(request.headers);
+      if (safeHeaders.containsKey('Authorization')) {
+        safeHeaders['Authorization'] = 'Bearer [REDACTED]';
+      }
+      _logger.info('Request headers: $safeHeaders');
+
+      // Get the content length if it exists
+      String? contentLength = request.headers['content-length'];
+      _logger.info('Content-Length in original request: $contentLength');
+
+      if (request is http.Request) {
+        _logger.info('Request body length: ${request.bodyBytes.length}');
+      }
+
+      // We won't modify the request at all - just pass it through
+      // This ensures all headers, body, and auth tokens are preserved
+      try {
+        return await _inner.send(request);
+      } catch (e) {
+        _logger.warning('Error sending request: $e');
+        throw e;
+      }
+    } catch (e, stack) {
+      _logger.severe('HTTP client error: $e');
+      rethrow;
     }
-
-    return _inner.send(request);
   }
 }

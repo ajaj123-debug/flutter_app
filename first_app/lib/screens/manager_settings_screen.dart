@@ -20,6 +20,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:cross_file/cross_file.dart';
+import '../services/installation_date_service.dart';
 
 class ManagerSettingsScreen extends StatefulWidget {
   const ManagerSettingsScreen({Key? key}) : super(key: key);
@@ -360,12 +361,38 @@ class _ManagerSettingsScreenState extends State<ManagerSettingsScreen>
             () => _navigateToScreen(context, 'ADMIN'),
           ),
           const SizedBox(height: 16),
-          _buildActionCard(
-            'go_premium',
-            'unlock_premium',
-            Icons.workspace_premium_outlined,
-            Colors.amber,
-            () => _navigateToScreen(context, 'BUY_PREMIUM'),
+          // Premium card with 3-month notice
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _buildActionCard(
+                'go_premium',
+                'unlock_premium',
+                Icons.workspace_premium_outlined,
+                Colors.amber,
+                () => _navigateToScreen(context, 'BUY_PREMIUM'),
+              ),
+              Positioned(
+                top: -10,
+                right: 20,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    '3 months free',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -440,6 +467,71 @@ class _ManagerSettingsScreenState extends State<ManagerSettingsScreen>
             Icons.info_outline,
             Colors.blue,
             () => _showAboutAppDialog(context),
+          ),
+          // Invisible testing area - requires long press (30 seconds) to enable ads
+          Align(
+            alignment: Alignment.center,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: GestureDetector(
+                onLongPress: () {
+                  // Show a countdown indicator
+                  int remainingSeconds = 30;
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+                  // Show initial message
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Hold for $remainingSeconds seconds to enable ads...'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+
+                  // Create a timer that updates every second
+                  Timer.periodic(const Duration(seconds: 1), (timer) async {
+                    remainingSeconds--;
+
+                    // Show progress at intervals
+                    if (remainingSeconds % 5 == 0 && remainingSeconds > 0) {
+                      scaffoldMessenger.clearSnackBars();
+                      scaffoldMessenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'Keep holding: $remainingSeconds seconds remaining...'),
+                          duration: const Duration(milliseconds: 800),
+                        ),
+                      );
+                    }
+
+                    // Time completed - activate ads
+                    if (remainingSeconds <= 0) {
+                      timer.cancel();
+
+                      // Force ads to appear by setting installation date to 3 months ago
+                      await InstallationDateService()
+                          .forceThreeMonthsPassedForTesting();
+
+                      // Show success message
+                      scaffoldMessenger.clearSnackBars();
+                      scaffoldMessenger.showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Ads enabled! App will now show ads as if 3 months have passed.'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  });
+                },
+                child: Container(
+                  width: 100,
+                  height: 30,
+                  color: Colors.transparent, // Completely invisible
+                ),
+              ),
+            ),
           ),
         ],
       ),

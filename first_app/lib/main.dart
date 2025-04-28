@@ -13,6 +13,7 @@ import 'services/user_database_service.dart';
 import 'package:logging/logging.dart';
 import 'services/language_service.dart';
 import 'services/ad_service.dart';
+import 'services/installation_date_service.dart';
 import 'dart:async'; // Add import for StreamSubscription
 import 'utils/asset_utils.dart'; // Add import for AssetUtils
 
@@ -49,6 +50,20 @@ void main() async {
     await AssetUtils.logAvailableAssets();
   } catch (e, stackTrace) {
     appLogger.severe('Error checking assets', e, stackTrace);
+  }
+
+  // Initialize installation date service
+  try {
+    appLogger.info('Initializing InstallationDateService...');
+    await InstallationDateService().initialize();
+    final installDate = await InstallationDateService().getInstallationDate();
+    appLogger.info('Installation date: $installDate');
+    final threeMonthsPassed =
+        await InstallationDateService().isThreeMonthsPassed();
+    appLogger.info('Three months passed: $threeMonthsPassed');
+  } catch (e, stackTrace) {
+    appLogger.severe(
+        'Failed to initialize InstallationDateService', e, stackTrace);
   }
 
   // Initialize language service
@@ -152,6 +167,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       // App came to foreground
       _updatePrayerTimes();
 
+      // Check ad status when app resumes
+      _checkAdStatus();
+
       // Check for language changes when app resumes
       final newLanguage = LanguageService.instance.currentLanguage;
       if (newLanguage != _currentLanguage) {
@@ -196,6 +214,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       WidgetsBinding.instance.addObserver(
         AppLifecycleObserver(userDatabaseService),
       );
+
+      // Check ad status during initialization
+      _checkAdStatus();
 
       setState(() {}); // Update UI with loaded preferences
       print('Successfully App initialization complete');
@@ -246,6 +267,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void _updatePrayerTimes() {
     // Implementation of _updatePrayerTimes method
+  }
+
+  // Check if ads should be shown based on installation date
+  Future<void> _checkAdStatus() async {
+    try {
+      final shouldShowAds = await AdService().shouldShowAds();
+      _logger
+          .info('Should show ads based on installation date: $shouldShowAds');
+
+      if (shouldShowAds) {
+        // If ads should be shown, preload one
+        AdService().loadRewardedAd();
+      }
+    } catch (e) {
+      _logger.severe('Error checking ad status: $e');
+    }
   }
 }
 
