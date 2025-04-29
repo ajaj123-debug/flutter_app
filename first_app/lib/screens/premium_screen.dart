@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import '../widgets/translated_text.dart';
 
 class PremiumScreen extends StatefulWidget {
   const PremiumScreen({Key? key}) : super(key: key);
@@ -164,8 +165,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
                         height: 1.4),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'Note: Ads appear only after 1 year of free usage.',
+                  const TranslatedText(
+                    'ads_after_free_period',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.yellow,

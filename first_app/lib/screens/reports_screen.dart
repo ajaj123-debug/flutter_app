@@ -298,7 +298,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                             ),
                             value: copyFullReport,
                             onChanged: (bool? value) {
-            setState(() {
+                              setState(() {
                                 copyFullReport = value ?? false;
                               });
                             },
@@ -1037,11 +1037,145 @@ class _ReportsScreenState extends State<ReportsScreen>
     }
   }
 
+  // Helper function to determine appropriate margins based on background image
+  pw.EdgeInsets _getMarginForBackground(String? backgroundImage) {
+    if (backgroundImage == null) {
+      return const pw.EdgeInsets.all(30); // Default margins
+    }
+
+    // Different margins for different background images
+    if (backgroundImage.contains('report_background_image_1.jpg')) {
+      return const pw.EdgeInsets.all(
+          75); // Islamic pattern with decorative border
+    } else if (backgroundImage.contains('report_background_image_2.jpg')) {
+      return const pw.EdgeInsets.fromLTRB(
+          60, 50, 60, 50); // Adjust based on the actual image
+    } else if (backgroundImage.contains('report_background_image_3.jpg')) {
+      return const pw.EdgeInsets.fromLTRB(
+          86, 92, 86, 92); // Adjust based on the actual image
+    } else if (backgroundImage.contains('report_background_image_4.jpg')) {
+      return const pw.EdgeInsets.fromLTRB(
+          86, 92, 86, 92); // Adjust based on the actual image
+    }
+
+    // Default for any other backgrounds
+    return const pw.EdgeInsets.all(30);
+  }
+
+  // Helper function to get appropriate colors for each background
+  pw.ThemeData _getThemeForBackground(String? backgroundImage) {
+    // Default theme with black text
+    final defaultTheme = pw.ThemeData.withFont(
+      base: _pdfFont,
+      bold: _pdfFont,
+      italic: _pdfFont,
+      boldItalic: _pdfFont,
+    );
+
+    if (backgroundImage == null) {
+      return defaultTheme;
+    }
+
+    // Customized themes based on background images
+    if (backgroundImage.contains('report_background_image_1.jpg')) {
+      // Islamic pattern - using default black text
+      return defaultTheme;
+    } else if (backgroundImage.contains('report_background_image_2.jpg')) {
+      // Custom colors that match background 2
+      return pw.ThemeData.withFont(
+        base: _pdfFont,
+        bold: _pdfFont,
+        italic: _pdfFont,
+        boldItalic: _pdfFont,
+      ).copyWith(
+        // Customize text colors to match the background
+        defaultTextStyle: const pw.TextStyle(
+          color: PdfColors.indigo900,
+          fontSize: 12,
+        ),
+        paragraphStyle: const pw.TextStyle(
+          color: PdfColors.indigo900,
+          fontSize: 12,
+        ),
+        header0: pw.TextStyle(
+          color: PdfColors.indigo800,
+          fontSize: 20,
+          fontWeight: pw.FontWeight.bold,
+        ),
+        header1: pw.TextStyle(
+          color: PdfColors.indigo800,
+          fontSize: 16,
+          fontWeight: pw.FontWeight.bold,
+        ),
+      );
+    } else if (backgroundImage.contains('report_background_image_3.jpg')) {
+      // Custom colors that match background 3
+      return pw.ThemeData.withFont(
+        base: _pdfFont,
+        bold: _pdfFont,
+        italic: _pdfFont,
+        boldItalic: _pdfFont,
+      ).copyWith(
+        // Customize text colors to match the background
+        defaultTextStyle: const pw.TextStyle(
+          color: PdfColors.teal900,
+          fontSize: 12,
+        ),
+        paragraphStyle: const pw.TextStyle(
+          color: PdfColors.teal900,
+          fontSize: 12,
+        ),
+        header0: pw.TextStyle(
+          color: PdfColors.teal800,
+          fontSize: 20,
+          fontWeight: pw.FontWeight.bold,
+        ),
+        header1: pw.TextStyle(
+          color: PdfColors.teal800,
+          fontSize: 16,
+          fontWeight: pw.FontWeight.bold,
+        ),
+      );
+    } else if (backgroundImage.contains('report_background_image_4.jpg')) {
+      // Custom colors that match background 4
+      return pw.ThemeData.withFont(
+        base: _pdfFont,
+        bold: _pdfFont,
+        italic: _pdfFont,
+        boldItalic: _pdfFont,
+      ).copyWith(
+        // Customize text colors to match the background
+        defaultTextStyle: const pw.TextStyle(
+          color: PdfColors.teal500,
+          fontSize: 12,
+        ),
+        paragraphStyle: const pw.TextStyle(
+          color: PdfColors.teal500,
+          fontSize: 12,
+        ),
+        header0: pw.TextStyle(
+          color: PdfColors.teal800,
+          fontSize: 20,
+          fontWeight: pw.FontWeight.bold,
+        ),
+        header1: pw.TextStyle(
+          color: PdfColors.teal800,
+          fontSize: 16,
+          fontWeight: pw.FontWeight.bold,
+        ),
+      );
+    }
+
+    // Default theme for any other backgrounds
+    return defaultTheme;
+  }
+
   Future<void> _generatePDFReport() async {
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final mosqueName = prefs.getString('masjid_name');
+      final backgroundImage = prefs.getString('report_background_image');
 
       if (mosqueName == null || mosqueName.isEmpty) {
         if (!mounted) return;
@@ -1065,21 +1199,49 @@ class _ReportsScreenState extends State<ReportsScreen>
           .map((p) => p.name)
           .toList();
 
+      // Load background image if selected
+      pw.Image? backgroundPwImage;
+      if (backgroundImage != null) {
+        try {
+          final bgBytes =
+              await rootBundle.load('assets/images/$backgroundImage');
+          final bgImage = pw.MemoryImage(bgBytes.buffer.asUint8List());
+          backgroundPwImage = pw.Image(bgImage, fit: pw.BoxFit.fill);
+        } catch (e) {
+          _logger.warning('Error loading background image: $e');
+        }
+      }
+
       // Add page to PDF
       pdf.addPage(
         pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
+          pageTheme: pw.PageTheme(
+            pageFormat: PdfPageFormat.a4,
+            buildBackground:
+                backgroundImage != null && backgroundPwImage != null
+                    ? (pw.Context context) {
+                        return pw.FullPage(
+                          ignoreMargins: true,
+                          child: backgroundPwImage!,
+                        );
+                      }
+                    : null,
+            // Use helper function to get appropriate margins
+            margin: _getMarginForBackground(backgroundImage),
+            theme: _getThemeForBackground(backgroundImage),
+          ),
           build: (pw.Context context) {
             return [
               // Header
-              pw.Header(
-                level: 0,
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
                 child: pw.Text(
                   '$mosqueName - Monthly Report',
                   style: pw.TextStyle(
                     fontSize: 20,
                     fontWeight: pw.FontWeight.bold,
                     font: _pdfFont,
+                    color: _getTextColorForBackground(backgroundImage),
                   ),
                 ),
               ),
@@ -1095,20 +1257,34 @@ class _ReportsScreenState extends State<ReportsScreen>
               pw.SizedBox(height: 20),
 
               // Income Section
-              pw.Header(
-                level: 1,
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
                 child: pw.Text(
                   'Income Transactions',
                   style: pw.TextStyle(
                     font: _pdfFont,
                     fontSize: 16,
                     fontWeight: pw.FontWeight.bold,
+                    color: _getTextColorForBackground(backgroundImage),
                   ),
                 ),
               ),
               pw.SizedBox(height: 5),
               pw.Table(
-                border: pw.TableBorder.all(),
+                border: pw.TableBorder(
+                  left: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  top: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  right: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  bottom: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  horizontalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  verticalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                ),
                 children: [
                   // Table header
                   pw.TableRow(
@@ -1118,28 +1294,36 @@ class _ReportsScreenState extends State<ReportsScreen>
                         child: pw.Text('S.No.',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Payer Name',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Amount',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Date',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                     ],
                   ),
@@ -1149,26 +1333,44 @@ class _ReportsScreenState extends State<ReportsScreen>
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text('${entry.key + 1}',
-                                style: pw.TextStyle(font: _pdfFont)),
+                                style: pw.TextStyle(
+                                  font: _pdfFont,
+                                  color: _getTextColorForBackground(
+                                      backgroundImage),
+                                )),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text(
-                                _payerNames[entry.value.payerId] ?? 'Unknown',
-                                style: pw.TextStyle(font: _pdfFont)),
+                              _payerNames[entry.value.payerId] ?? 'Unknown',
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              ),
+                            ),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text(
-                                _currencyFormat.format(entry.value.amount),
-                                style: pw.TextStyle(font: _pdfFont)),
+                              _currencyFormat.format(entry.value.amount),
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              ),
+                            ),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text(
-                                DateFormat('dd/MM/yyyy')
-                                    .format(entry.value.date),
-                                style: pw.TextStyle(font: _pdfFont)),
+                              DateFormat('dd/MM/yyyy').format(entry.value.date),
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              ),
+                            ),
                           ),
                         ],
                       )),
@@ -1177,20 +1379,34 @@ class _ReportsScreenState extends State<ReportsScreen>
               pw.SizedBox(height: 20),
 
               // Deductions Section
-              pw.Header(
-                level: 1,
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
                 child: pw.Text(
                   'Deductions',
                   style: pw.TextStyle(
                     font: _pdfFont,
                     fontSize: 16,
                     fontWeight: pw.FontWeight.bold,
+                    color: _getTextColorForBackground(backgroundImage),
                   ),
                 ),
               ),
               pw.SizedBox(height: 5),
               pw.Table(
-                border: pw.TableBorder.all(),
+                border: pw.TableBorder(
+                  left: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  top: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  right: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  bottom: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  horizontalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  verticalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                ),
                 children: [
                   // Table header
                   pw.TableRow(
@@ -1200,28 +1416,36 @@ class _ReportsScreenState extends State<ReportsScreen>
                         child: pw.Text('S.No.',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Category',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Amount',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Date',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                     ],
                   ),
@@ -1231,25 +1455,42 @@ class _ReportsScreenState extends State<ReportsScreen>
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text('${entry.key + 1}',
-                                style: pw.TextStyle(font: _pdfFont)),
+                                style: pw.TextStyle(
+                                  font: _pdfFont,
+                                  color: _getTextColorForBackground(
+                                      backgroundImage),
+                                )),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text(entry.value.category,
-                                style: pw.TextStyle(font: _pdfFont)),
+                                style: pw.TextStyle(
+                                  font: _pdfFont,
+                                  color: _getTextColorForBackground(
+                                      backgroundImage),
+                                )),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text(
-                                _currencyFormat.format(entry.value.amount),
-                                style: pw.TextStyle(font: _pdfFont)),
+                              _currencyFormat.format(entry.value.amount),
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              ),
+                            ),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text(
-                                DateFormat('dd/MM/yyyy')
-                                    .format(entry.value.date),
-                                style: pw.TextStyle(font: _pdfFont)),
+                              DateFormat('dd/MM/yyyy').format(entry.value.date),
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              ),
+                            ),
                           ),
                         ],
                       )),
@@ -1258,20 +1499,34 @@ class _ReportsScreenState extends State<ReportsScreen>
               pw.SizedBox(height: 20),
 
               // Summary Section
-              pw.Header(
-                level: 1,
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
                 child: pw.Text(
                   'Summary',
                   style: pw.TextStyle(
                     font: _pdfFont,
                     fontSize: 16,
                     fontWeight: pw.FontWeight.bold,
+                    color: _getTextColorForBackground(backgroundImage),
                   ),
                 ),
               ),
               pw.SizedBox(height: 5),
               pw.Table(
-                border: pw.TableBorder.all(),
+                border: pw.TableBorder(
+                  left: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  top: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  right: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  bottom: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  horizontalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  verticalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                ),
                 children: [
                   pw.TableRow(
                     children: [
@@ -1280,12 +1535,17 @@ class _ReportsScreenState extends State<ReportsScreen>
                         child: pw.Text('Total Income',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(_currencyFormat.format(_totalIncome),
-                            style: pw.TextStyle(font: _pdfFont)),
+                            style: pw.TextStyle(
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                     ],
                   ),
@@ -1296,12 +1556,17 @@ class _ReportsScreenState extends State<ReportsScreen>
                         child: pw.Text('Total Deductions',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(_currencyFormat.format(_totalDeductions),
-                            style: pw.TextStyle(font: _pdfFont)),
+                            style: pw.TextStyle(
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                     ],
                   ),
@@ -1312,12 +1577,17 @@ class _ReportsScreenState extends State<ReportsScreen>
                         child: pw.Text('Total Savings',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(_currencyFormat.format(_totalSavings),
-                            style: pw.TextStyle(font: _pdfFont)),
+                            style: pw.TextStyle(
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                     ],
                   ),
@@ -1325,20 +1595,34 @@ class _ReportsScreenState extends State<ReportsScreen>
               ),
 
               // Non-paying Payers Section
-              pw.Header(
-                level: 1,
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
                 child: pw.Text(
                   'Pending Payments',
                   style: pw.TextStyle(
                     font: _pdfFont,
                     fontSize: 16,
                     fontWeight: pw.FontWeight.bold,
+                    color: _getTextColorForBackground(backgroundImage),
                   ),
                 ),
               ),
               pw.SizedBox(height: 5),
               pw.Table(
-                border: pw.TableBorder.all(),
+                border: pw.TableBorder(
+                  left: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  top: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  right: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  bottom: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  horizontalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  verticalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                ),
                 children: [
                   // Table header
                   pw.TableRow(
@@ -1348,14 +1632,18 @@ class _ReportsScreenState extends State<ReportsScreen>
                         child: pw.Text('S.No.',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Payer Name',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                     ],
                   ),
@@ -1367,21 +1655,33 @@ class _ReportsScreenState extends State<ReportsScreen>
                               pw.Padding(
                                 padding: const pw.EdgeInsets.all(5),
                                 child: pw.Text('${index + 1}',
-                                    style: pw.TextStyle(font: _pdfFont)),
+                                    style: pw.TextStyle(
+                                      font: _pdfFont,
+                                      color: _getTextColorForBackground(
+                                          backgroundImage),
+                                    )),
                               ),
                               pw.Padding(
                                 padding: const pw.EdgeInsets.all(5),
                                 child: pw.Text(nonPayingPayers[index],
-                                    style: pw.TextStyle(font: _pdfFont)),
+                                    style: pw.TextStyle(
+                                      font: _pdfFont,
+                                      color: _getTextColorForBackground(
+                                          backgroundImage),
+                                    )),
                               ),
                             ],
                           )),
                 ],
               ),
 
-              // Add MosqueEase branding footer
+              // Add MosqueEase branding footer with custom divider
               pw.SizedBox(height: 40),
-              pw.Divider(thickness: 0.5),
+              pw.Container(
+                height: 0.5,
+                color: PdfColors.grey400,
+                margin: const pw.EdgeInsets.symmetric(horizontal: 20),
+              ),
               pw.SizedBox(height: 10),
               pw.Text(
                 "MosqueEase",
@@ -1533,6 +1833,7 @@ class _ReportsScreenState extends State<ReportsScreen>
     try {
       final prefs = await SharedPreferences.getInstance();
       final mosqueName = prefs.getString('masjid_name');
+      final backgroundImage = prefs.getString('report_background_image');
 
       if (mosqueName == null || mosqueName.isEmpty) {
         if (!mounted) return;
@@ -1556,21 +1857,49 @@ class _ReportsScreenState extends State<ReportsScreen>
           .map((p) => p.name)
           .toList();
 
+      // Load background image if selected
+      pw.Image? backgroundPwImage;
+      if (backgroundImage != null) {
+        try {
+          final bgBytes =
+              await rootBundle.load('assets/images/$backgroundImage');
+          final bgImage = pw.MemoryImage(bgBytes.buffer.asUint8List());
+          backgroundPwImage = pw.Image(bgImage, fit: pw.BoxFit.fill);
+        } catch (e) {
+          _logger.warning('Error loading background image: $e');
+        }
+      }
+
       // Add page to PDF
       pdf.addPage(
         pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
+          pageTheme: pw.PageTheme(
+            pageFormat: PdfPageFormat.a4,
+            buildBackground:
+                backgroundImage != null && backgroundPwImage != null
+                    ? (pw.Context context) {
+                        return pw.FullPage(
+                          ignoreMargins: true,
+                          child: backgroundPwImage!,
+                        );
+                      }
+                    : null,
+            // Use helper function to get appropriate margins
+            margin: _getMarginForBackground(backgroundImage),
+            theme: _getThemeForBackground(backgroundImage),
+          ),
           build: (pw.Context context) {
             return [
               // Header
-              pw.Header(
-                level: 0,
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
                 child: pw.Text(
                   '$mosqueName - Monthly Report',
                   style: pw.TextStyle(
                     fontSize: 20,
                     fontWeight: pw.FontWeight.bold,
                     font: _pdfFont,
+                    color: _getTextColorForBackground(backgroundImage),
                   ),
                 ),
               ),
@@ -1586,20 +1915,34 @@ class _ReportsScreenState extends State<ReportsScreen>
               pw.SizedBox(height: 20),
 
               // Income Section
-              pw.Header(
-                level: 1,
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
                 child: pw.Text(
                   'Income Transactions',
                   style: pw.TextStyle(
                     font: _pdfFont,
                     fontSize: 16,
                     fontWeight: pw.FontWeight.bold,
+                    color: _getTextColorForBackground(backgroundImage),
                   ),
                 ),
               ),
               pw.SizedBox(height: 5),
               pw.Table(
-                border: pw.TableBorder.all(),
+                border: pw.TableBorder(
+                  left: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  top: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  right: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  bottom: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  horizontalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  verticalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                ),
                 children: [
                   // Table header
                   pw.TableRow(
@@ -1609,28 +1952,36 @@ class _ReportsScreenState extends State<ReportsScreen>
                         child: pw.Text('S.No.',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Payer Name',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Amount',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Date',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                     ],
                   ),
@@ -1640,26 +1991,44 @@ class _ReportsScreenState extends State<ReportsScreen>
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text('${entry.key + 1}',
-                                style: pw.TextStyle(font: _pdfFont)),
+                                style: pw.TextStyle(
+                                  font: _pdfFont,
+                                  color: _getTextColorForBackground(
+                                      backgroundImage),
+                                )),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text(
-                                _payerNames[entry.value.payerId] ?? 'Unknown',
-                                style: pw.TextStyle(font: _pdfFont)),
+                              _payerNames[entry.value.payerId] ?? 'Unknown',
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              ),
+                            ),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text(
-                                _currencyFormat.format(entry.value.amount),
-                                style: pw.TextStyle(font: _pdfFont)),
+                              _currencyFormat.format(entry.value.amount),
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              ),
+                            ),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text(
-                                DateFormat('dd/MM/yyyy')
-                                    .format(entry.value.date),
-                                style: pw.TextStyle(font: _pdfFont)),
+                              DateFormat('dd/MM/yyyy').format(entry.value.date),
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              ),
+                            ),
                           ),
                         ],
                       )),
@@ -1668,20 +2037,34 @@ class _ReportsScreenState extends State<ReportsScreen>
               pw.SizedBox(height: 20),
 
               // Deductions Section
-              pw.Header(
-                level: 1,
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
                 child: pw.Text(
                   'Deductions',
                   style: pw.TextStyle(
                     font: _pdfFont,
                     fontSize: 16,
                     fontWeight: pw.FontWeight.bold,
+                    color: _getTextColorForBackground(backgroundImage),
                   ),
                 ),
               ),
               pw.SizedBox(height: 5),
               pw.Table(
-                border: pw.TableBorder.all(),
+                border: pw.TableBorder(
+                  left: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  top: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  right: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  bottom: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  horizontalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  verticalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                ),
                 children: [
                   // Table header
                   pw.TableRow(
@@ -1691,28 +2074,36 @@ class _ReportsScreenState extends State<ReportsScreen>
                         child: pw.Text('S.No.',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Category',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Amount',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Date',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                     ],
                   ),
@@ -1722,25 +2113,42 @@ class _ReportsScreenState extends State<ReportsScreen>
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text('${entry.key + 1}',
-                                style: pw.TextStyle(font: _pdfFont)),
+                                style: pw.TextStyle(
+                                  font: _pdfFont,
+                                  color: _getTextColorForBackground(
+                                      backgroundImage),
+                                )),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text(entry.value.category,
-                                style: pw.TextStyle(font: _pdfFont)),
+                                style: pw.TextStyle(
+                                  font: _pdfFont,
+                                  color: _getTextColorForBackground(
+                                      backgroundImage),
+                                )),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text(
-                                _currencyFormat.format(entry.value.amount),
-                                style: pw.TextStyle(font: _pdfFont)),
+                              _currencyFormat.format(entry.value.amount),
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              ),
+                            ),
                           ),
                           pw.Padding(
                             padding: const pw.EdgeInsets.all(5),
                             child: pw.Text(
-                                DateFormat('dd/MM/yyyy')
-                                    .format(entry.value.date),
-                                style: pw.TextStyle(font: _pdfFont)),
+                              DateFormat('dd/MM/yyyy').format(entry.value.date),
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              ),
+                            ),
                           ),
                         ],
                       )),
@@ -1749,20 +2157,34 @@ class _ReportsScreenState extends State<ReportsScreen>
               pw.SizedBox(height: 20),
 
               // Summary Section
-              pw.Header(
-                level: 1,
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
                 child: pw.Text(
                   'Summary',
                   style: pw.TextStyle(
                     font: _pdfFont,
                     fontSize: 16,
                     fontWeight: pw.FontWeight.bold,
+                    color: _getTextColorForBackground(backgroundImage),
                   ),
                 ),
               ),
               pw.SizedBox(height: 5),
               pw.Table(
-                border: pw.TableBorder.all(),
+                border: pw.TableBorder(
+                  left: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  top: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  right: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  bottom: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  horizontalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  verticalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                ),
                 children: [
                   pw.TableRow(
                     children: [
@@ -1771,12 +2193,17 @@ class _ReportsScreenState extends State<ReportsScreen>
                         child: pw.Text('Total Income',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(_currencyFormat.format(_totalIncome),
-                            style: pw.TextStyle(font: _pdfFont)),
+                            style: pw.TextStyle(
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                     ],
                   ),
@@ -1787,12 +2214,17 @@ class _ReportsScreenState extends State<ReportsScreen>
                         child: pw.Text('Total Deductions',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(_currencyFormat.format(_totalDeductions),
-                            style: pw.TextStyle(font: _pdfFont)),
+                            style: pw.TextStyle(
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                     ],
                   ),
@@ -1803,12 +2235,17 @@ class _ReportsScreenState extends State<ReportsScreen>
                         child: pw.Text('Total Savings',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(_currencyFormat.format(_totalSavings),
-                            style: pw.TextStyle(font: _pdfFont)),
+                            style: pw.TextStyle(
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                     ],
                   ),
@@ -1816,20 +2253,34 @@ class _ReportsScreenState extends State<ReportsScreen>
               ),
 
               // Non-paying Payers Section
-              pw.Header(
-                level: 1,
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
                 child: pw.Text(
                   'Pending Payments',
                   style: pw.TextStyle(
                     font: _pdfFont,
                     fontSize: 16,
                     fontWeight: pw.FontWeight.bold,
+                    color: _getTextColorForBackground(backgroundImage),
                   ),
                 ),
               ),
               pw.SizedBox(height: 5),
               pw.Table(
-                border: pw.TableBorder.all(),
+                border: pw.TableBorder(
+                  left: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  top: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  right: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  bottom: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  horizontalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                  verticalInside: pw.BorderSide(
+                      color: _getTextColorForBackground(backgroundImage)),
+                ),
                 children: [
                   // Table header
                   pw.TableRow(
@@ -1839,14 +2290,18 @@ class _ReportsScreenState extends State<ReportsScreen>
                         child: pw.Text('S.No.',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text('Payer Name',
                             style: pw.TextStyle(
                                 fontWeight: pw.FontWeight.bold,
-                                font: _pdfFont)),
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
                       ),
                     ],
                   ),
@@ -1858,21 +2313,33 @@ class _ReportsScreenState extends State<ReportsScreen>
                               pw.Padding(
                                 padding: const pw.EdgeInsets.all(5),
                                 child: pw.Text('${index + 1}',
-                                    style: pw.TextStyle(font: _pdfFont)),
+                                    style: pw.TextStyle(
+                                      font: _pdfFont,
+                                      color: _getTextColorForBackground(
+                                          backgroundImage),
+                                    )),
                               ),
                               pw.Padding(
                                 padding: const pw.EdgeInsets.all(5),
                                 child: pw.Text(nonPayingPayers[index],
-                                    style: pw.TextStyle(font: _pdfFont)),
+                                    style: pw.TextStyle(
+                                      font: _pdfFont,
+                                      color: _getTextColorForBackground(
+                                          backgroundImage),
+                                    )),
                               ),
                             ],
                           )),
                 ],
               ),
 
-              // Add MosqueEase branding footer
+              // Add MosqueEase branding footer with custom divider
               pw.SizedBox(height: 40),
-              pw.Divider(thickness: 0.5),
+              pw.Container(
+                height: 0.5,
+                color: PdfColors.grey400,
+                margin: const pw.EdgeInsets.symmetric(horizontal: 20),
+              ),
               pw.SizedBox(height: 10),
               pw.Text(
                 "MosqueEase",
@@ -1889,7 +2356,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
                   pw.Text(
-                    "Report generated by MosqueEase",
+                    "Report generated by MosqueEase App",
                     style: pw.TextStyle(
                       font: _pdfFont,
                       color: PdfColors.grey800,
@@ -1982,5 +2449,26 @@ class _ReportsScreenState extends State<ReportsScreen>
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  // Add a method to get the appropriate text color based on background
+  PdfColor _getTextColorForBackground(String? backgroundImage) {
+    if (backgroundImage == null) {
+      return PdfColors.black; // Default text color
+    }
+
+    // Different text colors for different backgrounds
+    if (backgroundImage.contains('report_background_image_1.jpg')) {
+      return PdfColors.black;
+    } else if (backgroundImage.contains('report_background_image_2.jpg')) {
+      return PdfColors.indigo900;
+    } else if (backgroundImage.contains('report_background_image_3.jpg')) {
+      return PdfColors.teal900;
+    } else if (backgroundImage.contains('report_background_image_4.jpg')) {
+      return PdfColors
+          .teal500; // Changed from brown to teal to match your updates
+    }
+
+    return PdfColors.black; // Default text color
   }
 }

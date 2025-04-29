@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 import 'premium_screen.dart';
 import 'language_settings_screen.dart';
+import 'report_settings_screen.dart';
 import '../widgets/translated_text.dart';
 import '../services/language_service.dart';
 import 'dart:async';
@@ -97,6 +98,12 @@ class _ManagerSettingsScreenState extends State<ManagerSettingsScreen>
           context,
           MaterialPageRoute(
               builder: (context) => const LanguageSettingsScreen()),
+        );
+        break;
+      case 'REPORT':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ReportSettingsScreen()),
         );
         break;
       default:
@@ -381,8 +388,8 @@ class _ManagerSettingsScreenState extends State<ManagerSettingsScreen>
                     color: Colors.green,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
-                    '3 months free',
+                  child: const TranslatedText(
+                    'one_year_free',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -507,7 +514,7 @@ class _ManagerSettingsScreenState extends State<ManagerSettingsScreen>
                     if (remainingSeconds <= 0) {
                       timer.cancel();
 
-                      // Force ads to appear by setting installation date to 3 months ago
+                      // Force ads to appear by setting installation date to 1 year ago
                       await InstallationDateService()
                           .forceThreeMonthsPassedForTesting();
 
@@ -515,8 +522,7 @@ class _ManagerSettingsScreenState extends State<ManagerSettingsScreen>
                       scaffoldMessenger.clearSnackBars();
                       scaffoldMessenger.showSnackBar(
                         const SnackBar(
-                          content: Text(
-                              'Ads enabled! App will now show ads as if 3 months have passed.'),
+                          content: TranslatedText('ads_enabled_message'),
                           backgroundColor: Colors.green,
                           duration: Duration(seconds: 3),
                         ),

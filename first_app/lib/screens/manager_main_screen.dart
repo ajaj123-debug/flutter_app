@@ -165,27 +165,29 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: Text('Watch an Ad for $featureName'),
+          title: Text(LanguageService.instance
+              .translate('watch_ad_for_feature')
+              .replaceAll('{feature}', featureName)),
           content: Text(
-            'After 1 year of free usage, you need to watch a short ad to access $featureName features. '
-            'After watching the ad, you can use this feature without ads for the rest of the day.\n\n'
-            'Upgrade to Premium to remove all ads permanently.',
+            LanguageService.instance
+                .translate('ad_requirement_message')
+                .replaceAll('{feature}', featureName),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const TranslatedText('cancel'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 _showPremiumDialog(context);
               },
-              child: const Text('View Premium'),
+              child: const TranslatedText('view_premium'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Watch Ad'),
+              child: const TranslatedText('watch_ad'),
             ),
           ],
         ),
@@ -296,7 +298,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
     // Check if ads should be shown based on installation date (3-month check)
     final shouldShowAds = await adService.shouldShowAds();
 
-    // Only require watching an ad if 3 months have passed and no ad was watched today
+    // Only require watching an ad if 1 year has passed and no ad was watched today
     if (shouldShowAds &&
         !adAlreadyWatchedToday &&
         adService.isRewardedAdReady()) {
@@ -305,14 +307,12 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
         context: context,
         barrierDismissible: false,
         builder: (context) => AlertDialog(
-          title: const Text('Watch an Ad'),
-          content: const Text(
-            'You need to watch a short ad once per day before exporting. After watching the ad, you can export data without ads for the rest of the day.',
-          ),
+          title: const TranslatedText('watch_ad'),
+          content: const TranslatedText('daily_export_ad_message'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
+              child: const TranslatedText('ok'),
             ),
           ],
         ),
@@ -919,8 +919,8 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
                     color: Colors.yellow.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                    'Ads appear only after 1 year of free usage',
+                  child: const TranslatedText(
+                    'ads_after_free_period',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
