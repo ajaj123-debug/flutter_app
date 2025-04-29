@@ -167,7 +167,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
         builder: (context) => AlertDialog(
           title: Text('Watch an Ad for $featureName'),
           content: Text(
-            'After 3 months of free usage, you need to watch a short ad to access $featureName features. '
+            'After 1 year of free usage, you need to watch a short ad to access $featureName features. '
             'After watching the ad, you can use this feature without ads for the rest of the day.\n\n'
             'Upgrade to Premium to remove all ads permanently.',
           ),
@@ -350,7 +350,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
         adService.loadRewardedAd();
       } else {
         _logger.info(
-            'Ads not required yet (less than 3 months since installation), proceeding with export');
+            'Ads not required yet (less than 1 year since installation), proceeding with export');
       }
     }
 
@@ -693,7 +693,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'Data exported to Cloud Successfully! (${dailyExportCount}/5 exports today)'),
+              'Data exported to Cloud Successfully! ($dailyExportCount/5 exports today)'),
           backgroundColor: Colors.green,
         ),
       );
@@ -920,7 +920,7 @@ class _ManagerMainScreenState extends State<ManagerMainScreen>
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
-                    'Ads appear only after 3 months of free usage',
+                    'Ads appear only after 1 year of free usage',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,

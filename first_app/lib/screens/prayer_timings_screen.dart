@@ -23,7 +23,7 @@ class _PrayerTimingsScreenState extends State<PrayerTimingsScreen> {
   String _hijriDate = '';
   int _selectedDayIndex = 0;
   List<DateTime> _weekDays = [];
-  Map<String, String> _prayerNames = {
+  final Map<String, String> _prayerNames = {
     'Fajr': 'Dawn',
     'Sunrise': 'Sunrise',
     'Dhuhr': 'Noon',
@@ -118,9 +118,7 @@ class _PrayerTimingsScreenState extends State<PrayerTimingsScreen> {
 
     try {
       // Initialize weekly prayer times if null
-      if (_weeklyPrayerTimes == null) {
-        _weeklyPrayerTimes = {};
-      }
+      _weeklyPrayerTimes ??= {};
 
       for (int i = 0; i < _weekDays.length; i++) {
         final date = _weekDays[i];
@@ -193,7 +191,7 @@ class _PrayerTimingsScreenState extends State<PrayerTimingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content:
-              Text('Unable to fetch prayer times. Please try again later.'),
+              const Text('Unable to fetch prayer times. Please try again later.'),
           backgroundColor: Colors.red.shade700,
         ));
       }
@@ -342,7 +340,7 @@ class _PrayerTimingsScreenState extends State<PrayerTimingsScreen> {
 
                     // Week days selector
                     const SizedBox(height: 16),
-                    Container(
+                    SizedBox(
                       height: 90,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
@@ -433,7 +431,7 @@ class _PrayerTimingsScreenState extends State<PrayerTimingsScreen> {
 
             // Prayer times list
             _isLoading || _prayerTimes == null
-                ? SliverFillRemaining(
+                ? const SliverFillRemaining(
                     child: Center(
                       child: CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
@@ -468,7 +466,7 @@ class _PrayerTimingsScreenState extends State<PrayerTimingsScreen> {
                   ),
 
             // Bottom padding
-            SliverToBoxAdapter(
+            const SliverToBoxAdapter(
               child: SizedBox(height: 16),
             ),
           ],
@@ -524,7 +522,7 @@ class _PrayerTimingsScreenState extends State<PrayerTimingsScreen> {
     }
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -546,7 +544,7 @@ class _PrayerTimingsScreenState extends State<PrayerTimingsScreen> {
               right: 16,
               top: 16,
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: colors[index].shade100,
                   borderRadius: BorderRadius.circular(12),

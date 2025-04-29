@@ -456,7 +456,7 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Select a Backup File'),
-        content: Container(
+        content: SizedBox(
           width: double.maxFinite,
           height: 300,
           child: ListView.builder(
@@ -493,11 +493,11 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Size: $fileSize', style: TextStyle(fontSize: 12)),
+                    Text('Size: $fileSize', style: const TextStyle(fontSize: 12)),
                     Text('Modified: $lastModified',
-                        style: TextStyle(fontSize: 12)),
+                        style: const TextStyle(fontSize: 12)),
                     Text(path,
-                        style: TextStyle(fontSize: 10),
+                        style: const TextStyle(fontSize: 10),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                   ],
@@ -869,7 +869,7 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
 
         final savedApiKey = prefs.getString('google_api_key');
         _logger.info(
-            'Verified API key saved after offline recovery: ${savedApiKey != null ? savedApiKey.substring(0, min(10, savedApiKey.length)) + "..." : "null"}');
+            'Verified API key saved after offline recovery: ${savedApiKey != null ? "${savedApiKey.substring(0, min(10, savedApiKey.length))}..." : "null"}');
       } else {
         // Make sure we're not using direct sheets
         await prefs.setBool('using_direct_sheets', false);
@@ -1108,7 +1108,7 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
         // Double-check that it was saved
         final savedApiKey = prefs.getString('google_api_key');
         _logger.info(
-            'Verified API key in handleSendData: ${savedApiKey != null ? (savedApiKey.isEmpty ? "empty" : savedApiKey.substring(0, min(10, savedApiKey.length)) + "...") : "null"} (Length: ${savedApiKey?.length ?? 0})');
+            'Verified API key in handleSendData: ${savedApiKey != null ? (savedApiKey.isEmpty ? "empty" : "${savedApiKey.substring(0, min(10, savedApiKey.length))}...") : "null"} (Length: ${savedApiKey?.length ?? 0})');
 
         // Other preferences
         await prefs.setBool('using_direct_sheets', true);
@@ -1361,7 +1361,7 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
             await prefs.setString('google_api_key', apiKey);
             final savedApiKey = prefs.getString('google_api_key');
             _logger.info(
-                'Verified API key saved in _handleSave recovery: ${savedApiKey != null ? savedApiKey.substring(0, min(10, savedApiKey.length)) + "..." : "null"}');
+                'Verified API key saved in _handleSave recovery: ${savedApiKey != null ? "${savedApiKey.substring(0, min(10, savedApiKey.length))}..." : "null"}');
 
             // Create direct service
             _directSheetsService = DirectGoogleSheetsService();
@@ -1424,7 +1424,7 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
               // Verify API key was saved
               final savedApiKey = prefs.getString('google_api_key');
               _logger.info(
-                  'Verified API key saved in _handleSave new setup: ${savedApiKey != null ? savedApiKey.substring(0, min(10, savedApiKey.length)) + "..." : "null"}');
+                  'Verified API key saved in _handleSave new setup: ${savedApiKey != null ? "${savedApiKey.substring(0, min(10, savedApiKey.length))}..." : "null"}');
 
               // Create direct service
               _directSheetsService = DirectGoogleSheetsService();
@@ -1517,7 +1517,7 @@ class _FirstTimeSetupScreenState extends State<FirstTimeSetupScreen> {
             // Verify API key was saved
             final savedApiKey = prefs.getString('google_api_key');
             _logger.info(
-                'Verified final API key saved: ${savedApiKey != null ? savedApiKey.substring(0, min(10, savedApiKey.length)) + "..." : "null"}');
+                'Verified final API key saved: ${savedApiKey != null ? "${savedApiKey.substring(0, min(10, savedApiKey.length))}..." : "null"}');
           }
         } else {
           await prefs.setBool('using_direct_sheets', false);

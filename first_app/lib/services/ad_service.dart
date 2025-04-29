@@ -26,8 +26,8 @@ class AdService {
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
 
-  // Flag to track if three months have passed since installation
-  bool _threeMonthsPassed = false;
+  // Flag to track if one year has passed since installation
+  bool _oneYearPassed = false;
 
   /// Initialize the Mobile Ads SDK
   Future<void> initialize() async {
@@ -40,9 +40,9 @@ class AdService {
       final installationService = InstallationDateService();
       await installationService.initialize();
 
-      // Check if 3 months have passed
-      _threeMonthsPassed = await installationService.isThreeMonthsPassed();
-      _logger.info('Three months passed check: $_threeMonthsPassed');
+      // Check if 1 year has passed
+      _oneYearPassed = await installationService.isThreeMonthsPassed();
+      _logger.info('One year passed check: $_oneYearPassed');
     } catch (e) {
       _logger.severe('Error initializing MobileAds: $e');
     }
@@ -59,11 +59,11 @@ class AdService {
 
     // Check if ads should be shown based on installation date
     final installationService = InstallationDateService();
-    _threeMonthsPassed = await installationService.isThreeMonthsPassed();
+    _oneYearPassed = await installationService.isThreeMonthsPassed();
 
-    if (!_threeMonthsPassed) {
-      _logger.info(
-          'Not loading ad as three months have not passed since installation');
+    if (!_oneYearPassed) {
+      _logger
+          .info('Not loading ad as one year has not passed since installation');
       return;
     }
 
@@ -97,10 +97,9 @@ class AdService {
   /// Show the rewarded ad
   /// Returns true if the user received the reward
   Future<bool> showRewardedAd(BuildContext context) async {
-    // If three months haven't passed, pretend ad was watched successfully
-    if (!_threeMonthsPassed) {
-      _logger.info(
-          'Skipping ad as three months have not passed since installation');
+    // If one year hasn't passed, pretend ad was watched successfully
+    if (!_oneYearPassed) {
+      _logger.info('Skipping ad as one year has not passed since installation');
       return true;
     }
 
@@ -175,8 +174,8 @@ class AdService {
 
   /// Check if a rewarded ad is ready to show
   bool isRewardedAdReady() {
-    // If three months haven't passed, pretend ad is not available
-    if (!_threeMonthsPassed) {
+    // If one year hasn't passed, pretend ad is not available
+    if (!_oneYearPassed) {
       return false;
     }
     return _rewardedAd != null;
@@ -192,9 +191,9 @@ class AdService {
     }
 
     // Check if ads should be shown based on installation date
-    if (!_threeMonthsPassed) {
+    if (!_oneYearPassed) {
       _logger.info(
-          'Not loading interstitial ad as three months have not passed since installation');
+          'Not loading interstitial ad as one year has not passed since installation');
       return;
     }
 
@@ -228,10 +227,10 @@ class AdService {
   /// Show the interstitial ad
   /// Returns true if the ad was shown successfully
   Future<bool> showInterstitialAd() async {
-    // If three months haven't passed, skip showing ad
-    if (!_threeMonthsPassed) {
+    // If one year hasn't passed, skip showing ad
+    if (!_oneYearPassed) {
       _logger.info(
-          'Skipping interstitial ad as three months have not passed since installation');
+          'Skipping interstitial ad as one year has not passed since installation');
       return true;
     }
 
@@ -277,8 +276,8 @@ class AdService {
 
   /// Check if an interstitial ad is ready to show
   bool isInterstitialAdReady() {
-    // If three months haven't passed, pretend ad is not available
-    if (!_threeMonthsPassed) {
+    // If one year hasn't passed, pretend ad is not available
+    if (!_oneYearPassed) {
       return false;
     }
     return _interstitialAd != null;
@@ -289,9 +288,9 @@ class AdService {
   /// Load a banner ad
   Future<void> loadBannerAd(AdSize size) async {
     // Check if ads should be shown based on installation date
-    if (!_threeMonthsPassed) {
+    if (!_oneYearPassed) {
       _logger.info(
-          'Not loading banner ad as three months have not passed since installation');
+          'Not loading banner ad as one year has not passed since installation');
       return;
     }
 
@@ -329,8 +328,8 @@ class AdService {
 
   /// Get the banner ad widget if loaded
   Widget? getBannerAdWidget() {
-    // If three months haven't passed, return null
-    if (!_threeMonthsPassed) {
+    // If one year hasn't passed, return null
+    if (!_oneYearPassed) {
       return null;
     }
 
@@ -353,8 +352,8 @@ class AdService {
 
   /// Check if a banner ad is ready to show
   bool isBannerAdReady() {
-    // If three months haven't passed, pretend ad is not available
-    if (!_threeMonthsPassed) {
+    // If one year hasn't passed, pretend ad is not available
+    if (!_oneYearPassed) {
       return false;
     }
     return _bannerAd != null && _isBannerAdLoaded;
@@ -387,7 +386,7 @@ class AdService {
   /// Check if we should show ads based on installation date
   Future<bool> shouldShowAds() async {
     final installationService = InstallationDateService();
-    _threeMonthsPassed = await installationService.isThreeMonthsPassed();
-    return _threeMonthsPassed;
+    _oneYearPassed = await installationService.isThreeMonthsPassed();
+    return _oneYearPassed;
   }
 }

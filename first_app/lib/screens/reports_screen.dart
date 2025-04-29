@@ -763,8 +763,8 @@ class _ReportsScreenState extends State<ReportsScreen>
                 children: [
                   const CircularProgressIndicator(),
                   if (_isAdLoading)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16.0),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 16.0),
                       child: Text(
                         'Loading Ad...',
                         style: TextStyle(

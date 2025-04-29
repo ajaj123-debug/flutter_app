@@ -56,7 +56,7 @@ class InstallationDateService {
     }
   }
 
-  /// Check if it's been 3 months since installation
+  /// Check if it's been 1 year since installation
   Future<bool> isThreeMonthsPassed() async {
     try {
       // If user is premium, always return false (don't show ads)
@@ -73,16 +73,16 @@ class InstallationDateService {
       }
 
       final now = DateTime.now();
-      final threeMonthsLater =
-          DateTime(installDate.year, installDate.month + 3, installDate.day);
+      final oneYearLater =
+          DateTime(installDate.year + 1, installDate.month, installDate.day);
 
-      final isPassed = now.isAfter(threeMonthsLater);
+      final isPassed = now.isAfter(oneYearLater);
       _logger.info(
-          'Three months passed: $isPassed (Install: $installDate, Threshold: $threeMonthsLater)');
+          'One year passed: $isPassed (Install: $installDate, Threshold: $oneYearLater)');
 
       return isPassed;
     } catch (e) {
-      _logger.severe('Error checking if three months passed: $e');
+      _logger.severe('Error checking if one year passed: $e');
       return false;
     }
   }
@@ -109,18 +109,17 @@ class InstallationDateService {
     }
   }
 
-  /// FOR TESTING ONLY: Force three months to have passed by setting installation date to 3 months ago
+  /// FOR TESTING ONLY: Force one year to have passed by setting installation date to 1 year ago
   Future<void> forceThreeMonthsPassedForTesting() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final now = DateTime.now();
-      final threeMonthsAgo = DateTime(now.year, now.month - 3, now.day);
-      await prefs.setString(
-          _installationDateKey, threeMonthsAgo.toIso8601String());
+      final oneYearAgo = DateTime(now.year - 1, now.month, now.day);
+      await prefs.setString(_installationDateKey, oneYearAgo.toIso8601String());
       _logger.warning(
-          'TESTING: Installation date artificially set to 3 months ago: ${threeMonthsAgo.toIso8601String()}');
+          'TESTING: Installation date artificially set to 1 year ago: ${oneYearAgo.toIso8601String()}');
     } catch (e) {
-      _logger.severe('Error forcing three months passed: $e');
+      _logger.severe('Error forcing one year passed: $e');
     }
   }
 }

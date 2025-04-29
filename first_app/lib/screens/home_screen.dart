@@ -383,11 +383,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     duration: const Duration(milliseconds: 200),
                     decoration: BoxDecoration(
                       color:
-                          Colors.white.withOpacity(_opacity > 0.1 ? 0.7 : 0.0),
+                          Colors.white.withValues(alpha: _opacity > 0.1 ? 0.7 : 0.0),
                       boxShadow: _opacity > 0.1
                           ? [
                               BoxShadow(
-                                color: Colors.black.withOpacity(_opacity * 0.1),
+                                color: Colors.black.withValues(alpha: _opacity * 0.1),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               )
@@ -561,7 +561,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       borderRadius: BorderRadius.circular(24),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
+                                          color: Colors.black.withValues(alpha: 0.1),
                                           blurRadius: 10,
                                           offset: const Offset(0, 4),
                                         ),
@@ -629,9 +629,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 gradient: LinearGradient(
                                                   colors: [
                                                     Colors.white
-                                                        .withOpacity(0.15),
+                                                        .withValues(alpha: 0.15),
                                                     Colors.white
-                                                        .withOpacity(0.05),
+                                                        .withValues(alpha: 0.05),
                                                   ],
                                                   begin: Alignment.topLeft,
                                                   end: Alignment.bottomRight,
@@ -641,7 +641,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 boxShadow: [
                                                   BoxShadow(
                                                     color: Colors.black
-                                                        .withOpacity(0.2),
+                                                        .withValues(alpha: 0.2),
                                                     blurRadius: 15,
                                                     offset: const Offset(0, 5),
                                                   ),
@@ -720,9 +720,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   gradient: LinearGradient(
                                                     colors: [
                                                       Colors.white
-                                                          .withOpacity(0.2),
+                                                          .withValues(alpha: 0.2),
                                                       Colors.white
-                                                          .withOpacity(0.1),
+                                                          .withValues(alpha: 0.1),
                                                     ],
                                                     begin: Alignment.topLeft,
                                                     end: Alignment.bottomRight,
@@ -928,7 +928,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  color: Colors.white.withOpacity(_navBarOpacity),
+                  color: Colors.white.withValues(alpha: _navBarOpacity),
                   child: BottomNavBar(
                     currentIndex: _currentIndex,
                     onTap: _onNavTap,
@@ -958,8 +958,8 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.white.withOpacity(0.2),
-                  Colors.white.withOpacity(0.1),
+                  Colors.white.withValues(alpha: 0.2),
+                  Colors.white.withValues(alpha: 0.1),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,

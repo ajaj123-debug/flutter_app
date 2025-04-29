@@ -197,7 +197,7 @@ class DirectGoogleSheetsService {
             }
 
             // Wait before retrying
-            await Future.delayed(Duration(seconds: 2));
+            await Future.delayed(const Duration(seconds: 2));
           }
         }
 
@@ -634,9 +634,9 @@ class _DirectHttpClient extends http.BaseClient {
         return await _inner.send(request);
       } catch (e) {
         _logger.warning('Error sending request: $e');
-        throw e;
+        rethrow;
       }
-    } catch (e, stack) {
+    } catch (e) {
       _logger.severe('HTTP client error: $e');
       rethrow;
     }

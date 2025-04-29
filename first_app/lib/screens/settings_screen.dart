@@ -430,7 +430,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: Colors.teal.withAlpha(51),
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: const Icon(
               Icons.language,
               color: Colors.teal,
               size: 20,

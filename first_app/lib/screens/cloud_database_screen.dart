@@ -114,13 +114,13 @@ class _CloudDatabaseScreenState extends State<CloudDatabaseScreen> {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             spacing: 12,
                             children: [
-                              Row(
+                              const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.cloud_outlined,
+                                  Icon(Icons.cloud_outlined,
                                       color: Colors.blue),
-                                  const SizedBox(width: 12),
-                                  const Flexible(
+                                  SizedBox(width: 12),
+                                  Flexible(
                                     child: Text(
                                       'Cloud Database Integration',
                                       style: TextStyle(

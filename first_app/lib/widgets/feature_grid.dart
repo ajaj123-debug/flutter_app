@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/mosque_screen.dart';
 import '../screens/settings_screen.dart';
-import '../screens/prayer_timings_screen.dart';
 
 class FeatureGrid extends StatelessWidget {
   const FeatureGrid({super.key});

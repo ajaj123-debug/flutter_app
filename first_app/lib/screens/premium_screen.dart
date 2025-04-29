@@ -165,7 +165,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'Note: Ads appear only after 3 months of free usage.',
+                    'Note: Ads appear only after 1 year of free usage.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.yellow,

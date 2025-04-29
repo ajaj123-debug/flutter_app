@@ -1436,7 +1436,7 @@ class _SurahWidget extends StatelessWidget {
         textAlign: TextAlign.justify, // Prevent text scaling which can be expensive
         softWrap: true,
         overflow: TextOverflow.clip,
-        textDirection: TextDirection.rtl, textScaler: TextScaler.linear(1.0),
+        textDirection: TextDirection.rtl, textScaler: const TextScaler.linear(1.0),
       ),
     );
   }
