@@ -29,7 +29,6 @@ void main() async {
   // Initialize logging
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
-    print('${record.level.name}: ${record.time}: ${record.message}');
     if (record.error != null) {
       print('Error: ${record.error}');
       print('Stack trace: ${record.stackTrace}');
@@ -105,9 +104,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
-  final UserDatabaseService _userDatabaseService = UserDatabaseService();
   final _logger = Logger('MyApp');
-  DateTime? _lastResumeTime;
   bool _isFirstLaunch = true;
   String? _userRole;
   bool _isManagerSetupComplete = false;

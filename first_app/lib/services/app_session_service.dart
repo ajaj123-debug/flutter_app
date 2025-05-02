@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../models/leaderboard_models.dart';
-import 'leaderboard_service.dart';
 import 'user_database_service.dart';
 import '../utils/logger.dart';
 
@@ -13,8 +11,6 @@ class AppSessionService {
   factory AppSessionService() => _instance;
 
   AppSessionService._internal();
-
-  final LeaderboardService _leaderboardService = LeaderboardService();
 
   void startSession() {
     _sessionStartTime = DateTime.now();
@@ -37,27 +33,15 @@ class AppSessionService {
     // Calculate points: 100 points per 10 seconds
     final points = (duration.inSeconds / 10).floor() * 100;
 
-    final userId = await UserDatabaseService().getUserId();
-    final username = await UserDatabaseService().getUsername();
     final currentPoints = await UserDatabaseService().getTotalPoints();
     final newPoints = currentPoints + points;
 
-    // Update local database first
-    await UserDatabaseService().setTotalPoints(newPoints);
-
-    final user = LeaderboardUser(
-      id: userId,
-      name: username,
-      points: newPoints,
-      lastUpdated: DateTime.now(),
-      rank: 0, // Will be updated when leaderboard is fetched
-    );
-
-    // Sync with Google Sheets
+    // Update local database
     try {
-      await _leaderboardService.updateUserPoints(user);
+      await UserDatabaseService().setTotalPoints(newPoints);
+      Logger.info('Points updated: $newPoints');
     } catch (e) {
-      Logger.error('Failed to sync with Google Sheets', e);
+      Logger.error('Failed to update points', e);
     }
   }
 }

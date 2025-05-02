@@ -54,24 +54,31 @@ class _SummaryScreenState extends State<SummaryScreen> {
   Future<void> _loadData() async {
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
+    final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
     final firstDayOfPrevMonth = DateTime(now.year, now.month - 1, 1);
+    final firstDayOfNextMonth = DateTime(now.year, now.month + 1, 1);
 
     final transactions = await _database.getAllTransactions();
     final payers = await _database.getAllPayers();
 
     final payerNames = {for (var p in payers) p.id!: p.name};
 
+    // Include all transactions of the current month, even future ones within this month
     final currentMonthTransactions = transactions
         .where((t) =>
-            t.date.isAfter(firstDayOfMonth) ||
-            t.date.isAtSameMomentAs(firstDayOfMonth))
+            t.date.isAfter(firstDayOfMonth.subtract(const Duration(days: 1))) &&
+            t.date.isBefore(firstDayOfNextMonth))
         .toList();
 
     final prevMonthTransactions = transactions
         .where((t) =>
-            t.date.isAfter(firstDayOfPrevMonth) &&
+            t.date.isAfter(
+                firstDayOfPrevMonth.subtract(const Duration(days: 1))) &&
             t.date.isBefore(firstDayOfMonth))
         .toList();
+
+    // For "Recent Transactions" we should include all transactions of the current month
+    final displayTransactions = currentMonthTransactions;
 
     if (!mounted) return;
 
@@ -92,7 +99,10 @@ class _SummaryScreenState extends State<SummaryScreen> {
           _calculateTotal(prevMonthTransactions, TransactionType.income) -
               _calculateTotal(prevMonthTransactions, TransactionType.deduction);
 
-      _currentMonthTransactions = currentMonthTransactions;
+      // Show all transactions for the current month
+      _currentMonthTransactions = displayTransactions;
+
+      // Get recent deductions from all transactions
       _recentDeductions = transactions
           .where((t) => t.type == TransactionType.deduction)
           .take(7)
@@ -112,62 +122,66 @@ class _SummaryScreenState extends State<SummaryScreen> {
     required List<Color> gradientColors,
     String? subtitle,
     IconData? icon,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradientColors,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: gradientColors.last.withOpacity(0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradientColors,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              TranslatedText(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              if (icon != null)
-                Icon(icon, color: Colors.white.withOpacity(0.8), size: 24),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            amount,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 14,
-              ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: gradientColors.last.withOpacity(0.4),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
-        ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TranslatedText(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (icon != null)
+                  Icon(icon, color: Colors.white.withOpacity(0.8), size: 24),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              amount,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -415,6 +429,350 @@ class _SummaryScreenState extends State<SummaryScreen> {
     );
   }
 
+  // Method to show detailed financial breakdown
+  void _showDetailedBreakdown() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 15,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            padding:
+                const EdgeInsets.only(top: 24, bottom: 16, left: 20, right: 20),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with gradient background
+                Container(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.grey.shade200,
+                        width: 1.0,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // Top row with close button
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Stack(
+                          children: [
+                            Align(
+                              alignment: Alignment.center,
+                              child: const Text(
+                                'Financial Summary',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: () => Navigator.pop(context),
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 18,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Calendar pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 16,
+                              color: Colors.blue.shade700,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              DateFormat('MMMM yyyy').format(DateTime.now()),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                                color: Colors.blue.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Detailed breakdown list
+                Flexible(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    children: [
+                      // Total Income
+                      _buildFinancialItem(
+                        'Total Income',
+                        _formatCurrency(_totalIncome),
+                        Colors.green.shade600,
+                        'arrow_upward',
+                        'Total income received till now',
+                        [Colors.green.shade100, Colors.green.shade50],
+                      ),
+                      // Total Savings
+                      _buildFinancialItem(
+                        'Total Savings',
+                        _formatCurrency(_totalSavings),
+                        Colors.blue.shade600,
+                        'account_balance_wallet',
+                        'Total savings (Income - Deductions) till now',
+                        [Colors.blue.shade100, Colors.blue.shade50],
+                      ),
+                      // Current Month Savings
+                      _buildFinancialItem(
+                        'Current Month Savings',
+                        _formatCurrency(_currentMonthSavings),
+                        Colors.blue.shade700,
+                        'account_balance',
+                        'Savings for the current month',
+                        [Colors.blue.shade100, Colors.blue.shade50],
+                      ),
+                      // Current Month Income
+                      _buildFinancialItem(
+                        'Current Month Income',
+                        _formatCurrency(_currentMonthIncome),
+                        Colors.green.shade700,
+                        'payments',
+                        'Income received in the current month',
+                        [Colors.green.shade100, Colors.green.shade50],
+                      ),
+                      // Total Deductions
+                      _buildFinancialItem(
+                        'Total Deductions',
+                        _formatCurrency(_totalDeductions),
+                        Colors.red.shade600,
+                        'arrow_downward',
+                        'Total expenses till now',
+                        [Colors.red.shade100, Colors.red.shade50],
+                      ),
+                      // Current Month Deductions
+                      _buildFinancialItem(
+                        'Current Month Deductions',
+                        _formatCurrency(_currentMonthDeductions),
+                        Colors.red.shade700,
+                        'shopping_cart',
+                        'Expenses for the current month',
+                        [Colors.red.shade100, Colors.red.shade50],
+                      ),
+                      // Previous Month Savings
+                      _buildFinancialItem(
+                        'Previous Month Savings',
+                        _formatCurrency(_previousMonthSavings),
+                        Colors.orange.shade700,
+                        'history',
+                        'Savings from the previous month',
+                        [Colors.orange.shade100, Colors.orange.shade50],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Footer with total
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.blue.shade500, Colors.blue.shade700],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Net Worth',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          _formatCurrency(_totalIncome - _totalDeductions),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Helper method to build financial item in the breakdown dialog with modern design
+  Widget _buildFinancialItem(
+    String title,
+    String amount,
+    Color color,
+    String iconName,
+    String description,
+    List<Color> gradientColors,
+  ) {
+    IconData icon;
+    switch (iconName) {
+      case 'arrow_upward':
+        icon = Icons.arrow_upward;
+        break;
+      case 'arrow_downward':
+        icon = Icons.arrow_downward;
+        break;
+      case 'account_balance_wallet':
+        icon = Icons.account_balance_wallet;
+        break;
+      case 'account_balance':
+        icon = Icons.account_balance;
+        break;
+      case 'payments':
+        icon = Icons.payments;
+        break;
+      case 'shopping_cart':
+        icon = Icons.shopping_cart;
+        break;
+      case 'history':
+        icon = Icons.history;
+        break;
+      default:
+        icon = Icons.monetization_on;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(10),
+              child: Icon(
+                icon,
+                color: color,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              amount,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
@@ -433,6 +791,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 subtitle:
                     '${'total_income'.tr}: ${_formatCurrency(_totalIncome)}',
                 icon: Icons.account_balance_wallet,
+                onTap: _showDetailedBreakdown,
               ),
               const SizedBox(height: 16),
               Row(

@@ -781,39 +781,265 @@ class _ReportsScreenState extends State<ReportsScreen>
 
   Widget _buildSummaryCard(
       String title, String amount, Color color, IconData icon) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TranslatedText(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+    return InkWell(
+      onTap: () {
+        if (title == 'total_income') {
+          _showTransactionsDialog(TransactionType.income);
+        } else if (title == 'total_deductions') {
+          _showTransactionsDialog(TransactionType.deduction);
+        }
+      },
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, color: color, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TranslatedText(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              amount,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: color,
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                amount,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  // Method to show transactions in a dialog
+  Future<void> _showTransactionsDialog(TransactionType type) async {
+    // Filter transactions of the selected type
+    final filteredTransactions =
+        type == TransactionType.income ? _transactions : _deductions;
+
+    String typeText;
+    if (type == TransactionType.income) {
+      typeText =
+          'Income Transactions'; // Using direct string instead of translation for now
+    } else {
+      typeText =
+          'Expense Transactions'; // Using direct string instead of translation for now
+    }
+
+    // Sort transactions by date - most recent first
+    filteredTransactions.sort((a, b) => b.date.compareTo(a.date));
+
+    if (!mounted) return;
+
+    final monthYear = DateFormat('MMM yyyy').format(_selectedDate);
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.grey.shade200,
+                        width: 1.0,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Icon(
+                            type == TransactionType.income
+                                ? Icons.arrow_upward
+                                : Icons.arrow_downward,
+                            color: type == TransactionType.income
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                          Expanded(
+                            child: Text(
+                              typeText,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        monthYear,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: filteredTransactions.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.inbox_outlined,
+                                size: 48,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No transactions found',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: filteredTransactions.length,
+                          separatorBuilder: (context, index) =>
+                              const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final transaction = filteredTransactions[index];
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                                vertical: 2.0,
+                              ),
+                              leading: CircleAvatar(
+                                backgroundColor: type == TransactionType.income
+                                    ? Colors.green.shade100
+                                    : Colors.red.shade100,
+                                child: Icon(
+                                  type == TransactionType.income
+                                      ? Icons.arrow_upward
+                                      : Icons.arrow_downward,
+                                  color: type == TransactionType.income
+                                      ? Colors.green
+                                      : Colors.red,
+                                  size: 20,
+                                ),
+                              ),
+                              title: type == TransactionType.income
+                                  ? Text(
+                                      _payerNames[transaction.payerId] ??
+                                          'Unknown',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w500),
+                                    )
+                                  : Text(
+                                      transaction.category,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w500),
+                                    ),
+                              subtitle: Text(
+                                DateFormat('dd MMM yyyy')
+                                    .format(transaction.date),
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey.shade600),
+                              ),
+                              trailing: Text(
+                                _currencyFormat.format(transaction.amount),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: type == TransactionType.income
+                                      ? Colors.green
+                                      : Colors.red,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+
+                // Footer with totals
+                if (filteredTransactions.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.only(top: 12),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.grey.shade200,
+                          width: 1.0,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Total:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                        Text(
+                          _currencyFormat.format(filteredTransactions.fold(0.0,
+                              (sum, transaction) => sum + transaction.amount)),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: type == TransactionType.income
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

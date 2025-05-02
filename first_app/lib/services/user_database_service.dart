@@ -82,6 +82,28 @@ class UserDatabaseService {
     return points;
   }
 
+  Future<void> setTotalPoints(int points) async {
+    _logger.info('Setting total points: $points');
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_pointsKey, points);
+
+    final userId = await getUserId();
+    final db = await database;
+    try {
+      await db.update(
+        _userTable,
+        {
+          _columnPoints: points,
+          _columnLastUpdated: DateTime.now().toIso8601String(),
+        },
+        where: '$_columnId = ?',
+        whereArgs: [userId],
+      );
+    } catch (e) {
+      _logger.severe('Error updating points in database: $e');
+    }
+  }
+
   Future<String> getUserId() async {
     final prefs = await SharedPreferences.getInstance();
     String? userId = prefs.getString(_userIdKey);
