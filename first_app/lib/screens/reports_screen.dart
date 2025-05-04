@@ -102,7 +102,8 @@ class _ReportsScreenState extends State<ReportsScreen>
       'view_pdf': 'View PDF Report',
       'save_pdf': 'Save PDF Report',
       'analysis': 'Reports Analysis',
-      'share': 'Share Report'
+      'share': 'Share Report',
+      'yearly_report': 'Yearly Report'
     };
 
     final featureName = featureNames[featureKey] ?? 'this feature';
@@ -714,6 +715,23 @@ class _ReportsScreenState extends State<ReportsScreen>
                           ),
                         ],
                       ),
+                      const SizedBox(height: 12),
+                      // Third row with yearly report button
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildActionButton(
+                              context,
+                              'yearly_report',
+                              Icons.calendar_today,
+                              Colors.purple,
+                              _isLoading || _isAdLoading
+                                  ? null
+                                  : _handleYearlyReportAction,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -879,14 +897,6 @@ class _ReportsScreenState extends State<ReportsScreen>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(
-                            type == TransactionType.income
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward,
-                            color: type == TransactionType.income
-                                ? Colors.green
-                                : Colors.red,
-                          ),
                           Expanded(
                             child: Text(
                               typeText,
@@ -896,12 +906,6 @@ class _ReportsScreenState extends State<ReportsScreen>
                               ),
                               textAlign: TextAlign.center,
                             ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => Navigator.pop(context),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
                           ),
                         ],
                       ),
@@ -1902,24 +1906,24 @@ class _ReportsScreenState extends State<ReportsScreen>
               ),
 
               // Add MosqueEase branding footer with custom divider
-              pw.SizedBox(height: 40),
+              pw.SizedBox(height: 20),
               pw.Container(
-                height: 0.5,
+                height: 0.3,
                 color: PdfColors.grey400,
                 margin: const pw.EdgeInsets.symmetric(horizontal: 20),
               ),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 6),
               pw.Text(
                 "MosqueEase",
                 style: pw.TextStyle(
                   color: PdfColors.blue900,
                   fontWeight: pw.FontWeight.bold,
                   font: _pdfFont,
-                  fontSize: 14,
+                  fontSize: 10,
                 ),
                 textAlign: pw.TextAlign.center,
               ),
-              pw.SizedBox(height: 8),
+              pw.SizedBox(height: 4),
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
@@ -1928,28 +1932,28 @@ class _ReportsScreenState extends State<ReportsScreen>
                     style: pw.TextStyle(
                       font: _pdfFont,
                       color: PdfColors.grey800,
-                      fontSize: 10,
+                      fontSize: 8,
                     ),
                     textAlign: pw.TextAlign.center,
                   ),
-                  pw.SizedBox(height: 4),
+                  pw.SizedBox(height: 2),
                   pw.Text(
                     "Simplifying Mosque Fund Management",
                     style: pw.TextStyle(
                       font: _pdfFont,
                       color: PdfColors.grey700,
-                      fontSize: 9,
+                      fontSize: 7,
                       fontStyle: pw.FontStyle.italic,
                     ),
                     textAlign: pw.TextAlign.center,
                   ),
-                  pw.SizedBox(height: 6),
+                  pw.SizedBox(height: 2),
                   pw.Text(
                     "Generated on: ${DateFormat('dd MMMM yyyy, hh:mm a').format(DateTime.now())}",
                     style: pw.TextStyle(
                       font: _pdfFont,
                       color: PdfColors.grey600,
-                      fontSize: 8,
+                      fontSize: 6,
                     ),
                     textAlign: pw.TextAlign.center,
                   ),
@@ -2560,24 +2564,24 @@ class _ReportsScreenState extends State<ReportsScreen>
               ),
 
               // Add MosqueEase branding footer with custom divider
-              pw.SizedBox(height: 40),
+              pw.SizedBox(height: 20),
               pw.Container(
-                height: 0.5,
+                height: 0.3,
                 color: PdfColors.grey400,
                 margin: const pw.EdgeInsets.symmetric(horizontal: 20),
               ),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 6),
               pw.Text(
                 "MosqueEase",
                 style: pw.TextStyle(
                   color: PdfColors.blue900,
                   fontWeight: pw.FontWeight.bold,
                   font: _pdfFont,
-                  fontSize: 14,
+                  fontSize: 10,
                 ),
                 textAlign: pw.TextAlign.center,
               ),
-              pw.SizedBox(height: 8),
+              pw.SizedBox(height: 4),
               pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.center,
                 children: [
@@ -2586,28 +2590,28 @@ class _ReportsScreenState extends State<ReportsScreen>
                     style: pw.TextStyle(
                       font: _pdfFont,
                       color: PdfColors.grey800,
-                      fontSize: 10,
+                      fontSize: 8,
                     ),
                     textAlign: pw.TextAlign.center,
                   ),
-                  pw.SizedBox(height: 4),
+                  pw.SizedBox(height: 2),
                   pw.Text(
                     "Simplifying Mosque Fund Management",
                     style: pw.TextStyle(
                       font: _pdfFont,
                       color: PdfColors.grey700,
-                      fontSize: 9,
+                      fontSize: 7,
                       fontStyle: pw.FontStyle.italic,
                     ),
                     textAlign: pw.TextAlign.center,
                   ),
-                  pw.SizedBox(height: 6),
+                  pw.SizedBox(height: 2),
                   pw.Text(
                     "Generated on: ${DateFormat('dd MMMM yyyy, hh:mm a').format(DateTime.now())}",
                     style: pw.TextStyle(
                       font: _pdfFont,
                       color: PdfColors.grey600,
-                      fontSize: 8,
+                      fontSize: 6,
                     ),
                     textAlign: pw.TextAlign.center,
                   ),
@@ -2696,5 +2700,738 @@ class _ReportsScreenState extends State<ReportsScreen>
     }
 
     return PdfColors.black; // Default text color
+  }
+
+  // Add this new method for handling yearly report action
+  Future<void> _handleYearlyReportAction() async {
+    // First check currency selection
+    if (!_hasSelectedCurrency) {
+      await _showCurrencySelectionDialog();
+      if (!_hasSelectedCurrency) return; // User cancelled currency selection
+    }
+
+    // Check if ad needs to be shown for yearly report
+    final canProceed = await _checkAndShowAdIfNeeded('yearly_report');
+    if (!canProceed) return;
+
+    // Proceed with yearly report generation
+    await _generateYearlyPDFReport();
+  }
+
+  // Add this new method for generating yearly PDF report
+  Future<void> _generateYearlyPDFReport() async {
+    setState(() => _isLoading = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final mosqueName = prefs.getString('masjid_name');
+      final backgroundImage = prefs.getString('report_background_image');
+
+      if (mosqueName == null || mosqueName.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please complete mosque setup first'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Get all transactions for the current year
+      final allTransactions = await _database.getAllTransactions();
+      final currentYear = _selectedDate.year;
+      final yearTransactions =
+          allTransactions.where((t) => t.date.year == currentYear).toList();
+
+      // Get all payers
+      final allPayers = await _database.getAllPayers();
+      final payerNames = {
+        for (var p in allPayers)
+          if (p.id != null) p.id!: p.name
+      };
+
+      // Create monthly summaries for each payer
+      final Map<int, Map<int, double>> payerMonthlyIncome = {};
+      for (var transaction
+          in yearTransactions.where((t) => t.type == TransactionType.income)) {
+        payerMonthlyIncome.putIfAbsent(transaction.payerId, () => {});
+        payerMonthlyIncome[transaction.payerId]!.update(
+          transaction.date.month,
+          (value) => value + transaction.amount,
+          ifAbsent: () => transaction.amount,
+        );
+      }
+
+      // Create monthly summaries for deductions
+      final Map<String, Map<int, double>> categoryMonthlyDeductions = {};
+      for (var transaction in yearTransactions
+          .where((t) => t.type == TransactionType.deduction)) {
+        categoryMonthlyDeductions.putIfAbsent(transaction.category, () => {});
+        categoryMonthlyDeductions[transaction.category]!.update(
+          transaction.date.month,
+          (value) => value + transaction.amount,
+          ifAbsent: () => transaction.amount,
+        );
+      }
+
+      // Create PDF document
+      final pdf = pw.Document();
+
+      // Load background image if selected
+      pw.Image? backgroundPwImage;
+      if (backgroundImage != null) {
+        try {
+          final bgBytes =
+              await rootBundle.load('assets/images/$backgroundImage');
+          final bgImage = pw.MemoryImage(bgBytes.buffer.asUint8List());
+          backgroundPwImage = pw.Image(bgImage, fit: pw.BoxFit.fill);
+        } catch (e) {
+          _logger.warning('Error loading background image: $e');
+        }
+      }
+
+      // Add page to PDF
+      pdf.addPage(
+        pw.MultiPage(
+          pageTheme: pw.PageTheme(
+            pageFormat: PdfPageFormat.a4,
+            buildBackground:
+                backgroundImage != null && backgroundPwImage != null
+                    ? (pw.Context context) {
+                        return pw.FullPage(
+                          ignoreMargins: true,
+                          child: backgroundPwImage!,
+                        );
+                      }
+                    : null,
+            margin: _getMarginForBackground(backgroundImage),
+            theme: _getThemeForBackground(backgroundImage),
+          ),
+          build: (pw.Context context) {
+            return [
+              // Header
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
+                child: pw.Text(
+                  '$mosqueName - Yearly Report $currentYear',
+                  style: pw.TextStyle(
+                    fontSize: 20,
+                    fontWeight: pw.FontWeight.bold,
+                    font: _pdfFont,
+                    color: _getTextColorForBackground(backgroundImage),
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 20),
+
+              // Income Section
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
+                child: pw.Text(
+                  'Income Summary',
+                  style: pw.TextStyle(
+                    font: _pdfFont,
+                    fontSize: 16,
+                    fontWeight: pw.FontWeight.bold,
+                    color: _getTextColorForBackground(backgroundImage),
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 5),
+              pw.Table(
+                border: pw.TableBorder.all(
+                  color: _getTextColorForBackground(backgroundImage),
+                ),
+                children: [
+                  // Table header
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('S.No.',
+                            style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('Payer Name',
+                            style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('Total Amount',
+                            style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
+                      ),
+                      ...List.generate(
+                          12,
+                          (index) => pw.Padding(
+                                padding: const pw.EdgeInsets.only(
+                                    left: 2, right: 2, top: 8, bottom: 2),
+                                child: pw.Container(
+                                  height: 30,
+                                  alignment: pw.Alignment.center,
+                                  child: pw.Transform.rotate(
+                                    angle: 90 *
+                                        (3.141592653589793 /
+                                            180), // 90 degrees in radians
+                                    child: pw.Text(
+                                      DateFormat('MMM').format(
+                                          DateTime(currentYear, index + 1)),
+                                      style: pw.TextStyle(
+                                          fontWeight: pw.FontWeight.bold,
+                                          font: _pdfFont,
+                                          fontSize: 7,
+                                          color: _getTextColorForBackground(
+                                              backgroundImage)),
+                                    ),
+                                  ),
+                                ),
+                              )),
+                    ],
+                  ),
+                  // Table rows for payers
+                  ...payerMonthlyIncome.entries.map((entry) {
+                    final payerName = payerNames[entry.key] ?? 'Unknown';
+                    final monthlyAmounts = entry.value;
+                    final totalAmount = monthlyAmounts.values
+                        .fold(0.0, (sum, amount) => sum + amount);
+
+                    return pw.TableRow(
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                              '${payerMonthlyIncome.keys.toList().indexOf(entry.key) + 1}',
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              )),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(payerName,
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              )),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            _currencyFormat.format(totalAmount),
+                            style: pw.TextStyle(
+                              font: _pdfFont,
+                              color:
+                                  _getTextColorForBackground(backgroundImage),
+                            ),
+                          ),
+                        ),
+                        ...List.generate(12, (index) {
+                          final amount = monthlyAmounts[index + 1] ?? 0.0;
+                          return pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(
+                              _currencyFormat.format(amount),
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                fontSize: 7,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    );
+                  }),
+                  // Total row
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('',
+                            style: pw.TextStyle(
+                              font: _pdfFont,
+                              color:
+                                  _getTextColorForBackground(backgroundImage),
+                            )),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('Total Income',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              font: _pdfFont,
+                              color:
+                                  _getTextColorForBackground(backgroundImage),
+                            )),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          _currencyFormat.format(payerMonthlyIncome.values.fold(
+                              0.0,
+                              (sum, monthly) =>
+                                  sum +
+                                  monthly.values.fold(
+                                      0.0,
+                                      (monthlySum, amount) =>
+                                          monthlySum + amount))),
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            font: _pdfFont,
+                            color: _getTextColorForBackground(backgroundImage),
+                          ),
+                        ),
+                      ),
+                      ...List.generate(12, (index) {
+                        final monthTotal = payerMonthlyIncome.values.fold(
+                            0.0,
+                            (sum, monthly) =>
+                                sum + (monthly[index + 1] ?? 0.0));
+                        return pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            _currencyFormat.format(monthTotal),
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              font: _pdfFont,
+                              fontSize: 7,
+                              color:
+                                  _getTextColorForBackground(backgroundImage),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 20),
+
+              // Deductions Section
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
+                child: pw.Text(
+                  'Deductions Summary',
+                  style: pw.TextStyle(
+                    font: _pdfFont,
+                    fontSize: 16,
+                    fontWeight: pw.FontWeight.bold,
+                    color: _getTextColorForBackground(backgroundImage),
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 5),
+              pw.Table(
+                border: pw.TableBorder.all(
+                  color: _getTextColorForBackground(backgroundImage),
+                ),
+                children: [
+                  // Table header
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('S.No.',
+                            style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('Category',
+                            style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('Total Amount',
+                            style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
+                      ),
+                      ...List.generate(
+                          12,
+                          (index) => pw.Padding(
+                                padding: const pw.EdgeInsets.only(
+                                    left: 2, right: 2, top: 8, bottom: 2),
+                                child: pw.Container(
+                                  height: 30,
+                                  alignment: pw.Alignment.center,
+                                  child: pw.Transform.rotate(
+                                    angle: 90 *
+                                        (3.141592653589793 /
+                                            180), // 90 degrees in radians
+                                    child: pw.Text(
+                                      DateFormat('MMM').format(
+                                          DateTime(currentYear, index + 1)),
+                                      style: pw.TextStyle(
+                                          fontWeight: pw.FontWeight.bold,
+                                          font: _pdfFont,
+                                          fontSize: 7,
+                                          color: _getTextColorForBackground(
+                                              backgroundImage)),
+                                    ),
+                                  ),
+                                ),
+                              )),
+                    ],
+                  ),
+                  // Table rows for deductions
+                  ...categoryMonthlyDeductions.entries.map((entry) {
+                    final totalAmount = entry.value.values
+                        .fold(0.0, (sum, amount) => sum + amount);
+
+                    return pw.TableRow(
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                              '${categoryMonthlyDeductions.keys.toList().indexOf(entry.key) + 1}',
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              )),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(entry.key,
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              )),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            _currencyFormat.format(totalAmount),
+                            style: pw.TextStyle(
+                              font: _pdfFont,
+                              color:
+                                  _getTextColorForBackground(backgroundImage),
+                            ),
+                          ),
+                        ),
+                        ...List.generate(12, (index) {
+                          final amount = entry.value[index + 1] ?? 0.0;
+                          return pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(
+                              _currencyFormat.format(amount),
+                              style: pw.TextStyle(
+                                font: _pdfFont,
+                                fontSize: 7,
+                                color:
+                                    _getTextColorForBackground(backgroundImage),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    );
+                  }),
+                  // Total row
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('',
+                            style: pw.TextStyle(
+                              font: _pdfFont,
+                              color:
+                                  _getTextColorForBackground(backgroundImage),
+                            )),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('Total Deductions',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              font: _pdfFont,
+                              color:
+                                  _getTextColorForBackground(backgroundImage),
+                            )),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          _currencyFormat.format(
+                              categoryMonthlyDeductions.values.fold(
+                                  0.0,
+                                  (sum, monthly) =>
+                                      sum +
+                                      monthly.values.fold(
+                                          0.0,
+                                          (monthlySum, amount) =>
+                                              monthlySum + amount))),
+                          style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            font: _pdfFont,
+                            color: _getTextColorForBackground(backgroundImage),
+                          ),
+                        ),
+                      ),
+                      ...List.generate(12, (index) {
+                        final monthTotal = categoryMonthlyDeductions.values
+                            .fold(
+                                0.0,
+                                (sum, monthly) =>
+                                    sum + (monthly[index + 1] ?? 0.0));
+                        return pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            _currencyFormat.format(monthTotal),
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              font: _pdfFont,
+                              fontSize: 7,
+                              color:
+                                  _getTextColorForBackground(backgroundImage),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 20),
+
+              // Summary Section
+              pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 10),
+                child: pw.Text(
+                  'Yearly Summary',
+                  style: pw.TextStyle(
+                    font: _pdfFont,
+                    fontSize: 16,
+                    fontWeight: pw.FontWeight.bold,
+                    color: _getTextColorForBackground(backgroundImage),
+                  ),
+                ),
+              ),
+              pw.SizedBox(height: 5),
+              pw.Table(
+                border: pw.TableBorder.all(
+                  color: _getTextColorForBackground(backgroundImage),
+                ),
+                children: [
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('Total Income',
+                            style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          _currencyFormat.format(payerMonthlyIncome.values.fold(
+                              0.0,
+                              (sum, monthly) =>
+                                  sum +
+                                  monthly.values.fold(
+                                      0.0,
+                                      (monthlySum, amount) =>
+                                          monthlySum + amount))),
+                          style: pw.TextStyle(
+                            font: _pdfFont,
+                            color: _getTextColorForBackground(backgroundImage),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('Total Deductions',
+                            style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          _currencyFormat.format(
+                              categoryMonthlyDeductions.values.fold(
+                                  0.0,
+                                  (sum, monthly) =>
+                                      sum +
+                                      monthly.values.fold(
+                                          0.0,
+                                          (monthlySum, amount) =>
+                                              monthlySum + amount))),
+                          style: pw.TextStyle(
+                            font: _pdfFont,
+                            color: _getTextColorForBackground(backgroundImage),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('Amount Left',
+                            style: pw.TextStyle(
+                                fontWeight: pw.FontWeight.bold,
+                                font: _pdfFont,
+                                color: _getTextColorForBackground(
+                                    backgroundImage))),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          _currencyFormat.format(payerMonthlyIncome.values.fold(
+                                  0.0,
+                                  (sum, monthly) =>
+                                      sum +
+                                      monthly.values.fold(
+                                          0.0,
+                                          (monthlySum, amount) =>
+                                              monthlySum + amount)) -
+                              categoryMonthlyDeductions.values.fold(
+                                  0.0,
+                                  (sum, monthly) =>
+                                      sum +
+                                      monthly.values.fold(
+                                          0.0,
+                                          (monthlySum, amount) =>
+                                              monthlySum + amount))),
+                          style: pw.TextStyle(
+                            font: _pdfFont,
+                            color: _getTextColorForBackground(backgroundImage),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              // Add MosqueEase branding footer
+              pw.SizedBox(height: 20),
+              pw.Container(
+                height: 0.3,
+                color: PdfColors.grey400,
+                margin: const pw.EdgeInsets.symmetric(horizontal: 20),
+              ),
+              pw.SizedBox(height: 6),
+              pw.Text(
+                "MosqueEase",
+                style: pw.TextStyle(
+                  color: PdfColors.blue900,
+                  fontWeight: pw.FontWeight.bold,
+                  font: _pdfFont,
+                  fontSize: 10,
+                ),
+                textAlign: pw.TextAlign.center,
+              ),
+              pw.SizedBox(height: 4),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    "Report generated by MosqueEase App",
+                    style: pw.TextStyle(
+                      font: _pdfFont,
+                      color: PdfColors.grey800,
+                      fontSize: 8,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 2),
+                  pw.Text(
+                    "Simplifying Mosque Fund Management",
+                    style: pw.TextStyle(
+                      font: _pdfFont,
+                      color: PdfColors.grey700,
+                      fontSize: 7,
+                      fontStyle: pw.FontStyle.italic,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 2),
+                  pw.Text(
+                    "Generated on: ${DateFormat('dd MMMM yyyy, hh:mm a').format(DateTime.now())}",
+                    style: pw.TextStyle(
+                      font: _pdfFont,
+                      color: PdfColors.grey600,
+                      fontSize: 6,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ],
+              ),
+            ];
+          },
+        ),
+      );
+
+      // Save the PDF to a temporary file
+      final output = await getTemporaryDirectory();
+      final file =
+          File('${output.path}/${mosqueName}_Yearly_Report_$currentYear.pdf');
+      await file.writeAsBytes(await pdf.save());
+
+      // Open the PDF file
+      await OpenFile.open(file.path);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Yearly PDF report generated Successfully!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'OK',
+            textColor: Colors.white,
+            onPressed: () {},
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating yearly PDF report: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 }
