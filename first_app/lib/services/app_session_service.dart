@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
 import 'user_database_service.dart';
 import '../utils/logger.dart';
 

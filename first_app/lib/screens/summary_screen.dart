@@ -480,9 +480,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Stack(
                           children: [
-                            Align(
+                            const Align(
                               alignment: Alignment.center,
-                              child: const Text(
+                              child: Text(
                                 'Financial Summary',
                                 style: TextStyle(
                                   fontSize: 20,

@@ -645,6 +645,193 @@ class _TabularTransactionHistoryScreenState
     );
   }
 
+  Widget _buildPayerSummaryCard(
+      String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showPayerSummary(String payerName) async {
+    final payers = await _database.getAllPayers();
+    final payer = payers.firstWhere((p) => p.name == payerName);
+    if (payer.id == null) return;
+
+    final transactions = await _database.getAllTransactions();
+    final payerTransactions = transactions
+        .where((t) =>
+            t.payerId == payer.id &&
+            t.date.year == _selectedYear &&
+            t.type == TransactionType.income)
+        .toList();
+
+    final totalAmount = payerTransactions.fold(0.0, (sum, t) => sum + t.amount);
+    final monthsPaid =
+        payerTransactions.map((t) => t.date.month).toSet().length;
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Payer Summary',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.person,
+                      color: Theme.of(context).primaryColor,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      payerName,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildPayerSummaryCard(
+                      'Total Payments',
+                      _currencyFormat.format(totalAmount),
+                      Icons.payments,
+                      Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildPayerSummaryCard(
+                      'Months Paid',
+                      '$monthsPaid',
+                      Icons.calendar_month,
+                      Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (payerTransactions.isNotEmpty) ...[
+                Text(
+                  'Payment History',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[300]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ListView.builder(
+                    itemCount: payerTransactions.length,
+                    itemBuilder: (context, index) {
+                      final transaction = payerTransactions[index];
+                      return ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.payments,
+                            color: Colors.green,
+                          ),
+                        ),
+                        title: Text(
+                          DateFormat('MMM yyyy').format(transaction.date),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        trailing: Text(
+                          _currencyFormat.format(transaction.amount),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green[700],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildYearSelector() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -783,19 +970,22 @@ class _TabularTransactionHistoryScreenState
                     controller: _namesListController,
                     itemCount: filteredPayers.length,
                     itemBuilder: (context, index) {
-                      return Container(
-                        height: 50,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border(
-                            right: BorderSide(color: Colors.grey[300]!),
-                            bottom: BorderSide(color: Colors.grey[200]!),
+                      return GestureDetector(
+                        onTap: () => _showPayerSummary(filteredPayers[index]),
+                        child: Container(
+                          height: 50,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border(
+                              right: BorderSide(color: Colors.grey[300]!),
+                              bottom: BorderSide(color: Colors.grey[200]!),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          filteredPayers[index],
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          child: Text(
+                            filteredPayers[index],
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
                         ),
                       );
                     },

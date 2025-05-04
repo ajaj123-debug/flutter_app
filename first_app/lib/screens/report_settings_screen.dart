@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/translated_text.dart';
 import '../services/language_service.dart';
-import 'dart:io';
 
 class ReportSettingsScreen extends StatefulWidget {
   const ReportSettingsScreen({Key? key}) : super(key: key);

@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'dart:convert';
-import 'dart:typed_data';
-import 'package:flutter/painting.dart';
 import 'package:http/http.dart' as http;
 import '../widgets/feature_grid.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'mosque_screen.dart';
 import 'settings_screen.dart';
-import 'prayer_timings_screen.dart';
 import '../services/google_sheets_service.dart';
 import '../utils/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -382,12 +379,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     decoration: BoxDecoration(
-                      color:
-                          Colors.white.withValues(alpha: _opacity > 0.1 ? 0.7 : 0.0),
+                      color: Colors.white
+                          .withValues(alpha: _opacity > 0.1 ? 0.7 : 0.0),
                       boxShadow: _opacity > 0.1
                           ? [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: _opacity * 0.1),
+                                color: Colors.black
+                                    .withValues(alpha: _opacity * 0.1),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               )
@@ -561,7 +559,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                       borderRadius: BorderRadius.circular(24),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.1),
+                                          color: Colors.black
+                                              .withValues(alpha: 0.1),
                                           blurRadius: 10,
                                           offset: const Offset(0, 4),
                                         ),
@@ -628,10 +627,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                               decoration: BoxDecoration(
                                                 gradient: LinearGradient(
                                                   colors: [
-                                                    Colors.white
-                                                        .withValues(alpha: 0.15),
-                                                    Colors.white
-                                                        .withValues(alpha: 0.05),
+                                                    Colors.white.withValues(
+                                                        alpha: 0.15),
+                                                    Colors.white.withValues(
+                                                        alpha: 0.05),
                                                   ],
                                                   begin: Alignment.topLeft,
                                                   end: Alignment.bottomRight,
@@ -719,10 +718,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 decoration: BoxDecoration(
                                                   gradient: LinearGradient(
                                                     colors: [
-                                                      Colors.white
-                                                          .withValues(alpha: 0.2),
-                                                      Colors.white
-                                                          .withValues(alpha: 0.1),
+                                                      Colors.white.withValues(
+                                                          alpha: 0.2),
+                                                      Colors.white.withValues(
+                                                          alpha: 0.1),
                                                     ],
                                                     begin: Alignment.topLeft,
                                                     end: Alignment.bottomRight,
