@@ -1146,8 +1146,17 @@ class _ReportsScreenState extends State<ReportsScreen>
 
   // Add missing methods that were referenced in our implementation
   Future<void> _loadFont() async {
-    final fontData = await rootBundle.load('assets/fonts/NotoSans-Regular.ttf');
-    _pdfFont = pw.Font.ttf(fontData);
+    try {
+      final fontData =
+          await rootBundle.load('assets/fonts/NotoSansDevanagari.ttf');
+      _pdfFont = pw.Font.ttf(fontData);
+    } catch (e) {
+      _logger.warning('Error loading Devanagari font: $e');
+      // Fallback to a standard font if the Devanagari font fails to load
+      final fallbackFontData =
+          await rootBundle.load('assets/fonts/NotoSans-Regular.ttf');
+      _pdfFont = pw.Font.ttf(fallbackFontData);
+    }
   }
 
   Future<void> _loadData() async {
