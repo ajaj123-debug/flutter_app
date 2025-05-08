@@ -346,6 +346,7 @@ class LanguageService {
       'generate_yearly_report': 'Generate Yearly Report',
       'yearly_report_generated': 'Yearly report generated successfully',
       'yearly_report_failed': 'Failed to generate yearly report',
+      'imaam_salary': 'Imaam Salary',
     },
     'hi': {
       // Dashboard and main screens
@@ -528,7 +529,7 @@ class LanguageService {
       'share_report': 'रिपोरट शेयर करें',
       'select_what_to_share': 'आप क्या शेयर करना चाहते हैं उसे चुनें',
       'full_report': 'पूरी रिपोर्ट',
-      'full_report_description': 'सभी लेन-देन और खुलासा शामिल है',
+      'full_report_description': 'सभी लेन-देन और खुलासा अन्तर्भुज्य',
       'non_payers_list': 'अदातादों की सूची',
       'non_payers_description': 'या उनके सदस्यों की सूची',
       'cancel': 'रद्द करें',
@@ -583,6 +584,7 @@ class LanguageService {
       'generate_yearly_report': 'वार्षिक रिपोर्ट तैयार करें',
       'yearly_report_generated': 'वार्षिक रिपोर्ट सफलतापूर्वक तैयार की गई',
       'yearly_report_failed': 'वार्षिक रिपोर्ट तैयार करने में विफल',
+      'imaam_salary': 'इमाम वेतन',
     },
     'ur': {
       // Dashboard and main screens
@@ -820,6 +822,7 @@ class LanguageService {
       'generate_yearly_report': 'صارف کو پورے سال کی رپورٹ تیار کرنا چاہیے',
       'yearly_report_generated': 'سالانہ رپورٹ کامیابی سے تیار ہو گئی',
       'yearly_report_failed': 'سالانہ رپورٹ تیار کرنے میں ناکام',
+      'imaam_salary': 'امام کی تنخواہ',
     },
     'bn': {
       // Dashboard and main screens
@@ -1030,6 +1033,7 @@ class LanguageService {
       'generate_yearly_report': '঵ার্ষিক রিপোর্ট তৈরি করুন',
       'yearly_report_generated': 'বার্ষিক রিপোর্ট সফলভাবে তৈরি করা হয়েছে',
       'yearly_report_failed': 'বার্ষিক রিপোর্ট তৈরি করতে ব্যর্থ হয়েছে',
+      'imaam_salary': 'ইমাম বেতন',
     },
   };
 }

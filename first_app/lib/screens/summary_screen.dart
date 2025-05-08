@@ -4,6 +4,8 @@ import '../services/database_service.dart';
 import 'package:intl/intl.dart';
 import '../widgets/translated_text.dart';
 import '../services/language_service.dart';
+import '../screens/imaam_salary_screen.dart';
+import '../models/imaam_salary.dart';
 
 class SummaryScreen extends StatefulWidget {
   const SummaryScreen({Key? key}) : super(key: key);
@@ -12,7 +14,8 @@ class SummaryScreen extends StatefulWidget {
   State<SummaryScreen> createState() => _SummaryScreenState();
 }
 
-class _SummaryScreenState extends State<SummaryScreen> {
+class _SummaryScreenState extends State<SummaryScreen>
+    with SingleTickerProviderStateMixin {
   final _database = DatabaseService.instance;
   final _currencyFormat = NumberFormat.currency(
     symbol: '₹',
@@ -21,6 +24,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
   );
 
   final _languageService = LanguageService.instance;
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+  bool _isCurrentMonthPaid = false;
 
   // Format currency according to language direction
   String _formatCurrency(double amount) {
@@ -49,6 +55,25 @@ class _SummaryScreenState extends State<SummaryScreen> {
   void initState() {
     super.initState();
     _loadData();
+
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -60,6 +85,18 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
     final transactions = await _database.getAllTransactions();
     final payers = await _database.getAllPayers();
+    final salaries = await _database.getAllImaamSalaries();
+
+    // Check if current month salary is paid
+    final currentMonthSalary = salaries.firstWhere(
+      (salary) => salary.year == now.year && salary.month == now.month,
+      orElse: () => ImaamSalary(
+        year: now.year,
+        month: now.month,
+        isPaid: false,
+        amount: 0,
+      ),
+    );
 
     final payerNames = {for (var p in payers) p.id!: p.name};
 
@@ -107,6 +144,8 @@ class _SummaryScreenState extends State<SummaryScreen> {
           .where((t) => t.type == TransactionType.deduction)
           .take(7)
           .toList();
+
+      _isCurrentMonthPaid = currentMonthSalary.isPaid;
     });
   }
 
@@ -123,6 +162,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
     String? subtitle,
     IconData? icon,
     VoidCallback? onTap,
+    bool isThisMonth = false,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -158,7 +198,29 @@ class _SummaryScreenState extends State<SummaryScreen> {
                   ),
                 ),
                 if (icon != null)
-                  Icon(icon, color: Colors.white.withOpacity(0.8), size: 24),
+                  isThisMonth
+                      ? _isCurrentMonthPaid
+                          ? Icon(
+                              icon,
+                              color: Colors.white.withOpacity(0.8),
+                              size: 24,
+                            )
+                          : AnimatedBuilder(
+                              animation: _animation,
+                              builder: (context, child) {
+                                return Icon(
+                                  icon,
+                                  color:
+                                      Colors.red.withOpacity(_animation.value),
+                                  size: 24,
+                                );
+                              },
+                            )
+                      : Icon(
+                          icon,
+                          color: Colors.white.withOpacity(0.8),
+                          size: 24,
+                        ),
               ],
             ),
             const SizedBox(height: 12),
@@ -802,6 +864,15 @@ class _SummaryScreenState extends State<SummaryScreen> {
                       amount: _formatCurrency(_currentMonthSavings),
                       gradientColors: [Colors.green, Colors.green.shade800],
                       icon: Icons.trending_up,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ImaamSalaryScreen(),
+                          ),
+                        );
+                      },
+                      isThisMonth: true,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -825,5 +896,44 @@ class _SummaryScreenState extends State<SummaryScreen> {
         ),
       ),
     );
+  }
+}
+
+class ZigzagPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+
+  ZigzagPainter({
+    required this.color,
+    required this.strokeWidth,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+    final width = size.width;
+    final height = size.height;
+    final segmentWidth = width / 8;
+    final segmentHeight = height / 4;
+
+    path.moveTo(0, height / 2);
+
+    for (int i = 0; i < 8; i++) {
+      final x = i * segmentWidth;
+      final y = height / 2 + (i % 2 == 0 ? segmentHeight : -segmentHeight);
+      path.lineTo(x, y);
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(ZigzagPainter oldDelegate) {
+    return color != oldDelegate.color || strokeWidth != oldDelegate.strokeWidth;
   }
 }

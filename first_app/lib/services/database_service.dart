@@ -4,6 +4,7 @@ import '../models/account.dart';
 import '../models/transaction.dart';
 import '../models/payer.dart';
 import '../models/category.dart';
+import '../models/imaam_salary.dart';
 
 class DatabaseService {
   static final DatabaseService instance = DatabaseService._init();
@@ -23,7 +24,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -47,7 +48,7 @@ class DatabaseService {
         )
       ''');
     }
-    
+
     if (oldVersion < 3) {
       // Create new transactions table with payer_id
       await db.execute('''
@@ -61,18 +62,34 @@ class DatabaseService {
           FOREIGN KEY (payer_id) REFERENCES payers (id)
         )
       ''');
-      
+
       // Copy data from old table to new table (setting a default payer if needed)
       await db.execute('''
         INSERT INTO new_transactions (payer_id, amount, type, category, date)
         SELECT 1, amount, type, category, date FROM transactions
       ''');
-      
+
       // Drop old table
       await db.execute('DROP TABLE transactions');
-      
+
       // Rename new table to transactions
       await db.execute('ALTER TABLE new_transactions RENAME TO transactions');
+    }
+
+    if (oldVersion < 4) {
+      // Create imaam_salary table
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS imaam_salary (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          year INTEGER NOT NULL,
+          month INTEGER NOT NULL,
+          is_paid INTEGER NOT NULL,
+          paid_date TEXT,
+          amount REAL NOT NULL,
+          notes TEXT,
+          UNIQUE(year, month)
+        )
+      ''');
     }
   }
 
@@ -102,6 +119,20 @@ class DatabaseService {
       CREATE TABLE categories (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE
+      )
+    ''');
+
+    // Add imaam_salary table
+    await db.execute('''
+      CREATE TABLE imaam_salary (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        year INTEGER NOT NULL,
+        month INTEGER NOT NULL,
+        is_paid INTEGER NOT NULL,
+        paid_date TEXT,
+        amount REAL NOT NULL,
+        notes TEXT,
+        UNIQUE(year, month)
       )
     ''');
   }
@@ -137,7 +168,7 @@ class DatabaseService {
   Future<Transaction> createTransaction(Transaction transaction) async {
     final db = await database;
     final id = await db.insert('transactions', transaction.toMap());
-    
+
     return Transaction(
       id: id,
       payerId: transaction.payerId,
@@ -263,13 +294,13 @@ class DatabaseService {
       FROM transactions 
       WHERE type = ?
     ''', ['TransactionType.income']);
-    
+
     final deductions = await db.rawQuery('''
       SELECT COALESCE(SUM(amount), 0.0) as total 
       FROM transactions 
       WHERE type = ?
     ''', ['TransactionType.deduction']);
-    
+
     final totalIncome = (income.first['total'] as num).toDouble();
     final totalDeductions = (deductions.first['total'] as num).toDouble();
     return totalIncome - totalDeductions;
@@ -286,14 +317,14 @@ class DatabaseService {
       WHERE type = ? 
       AND date BETWEEN ? AND ?
     ''', ['TransactionType.income', startDate, endDate]);
-    
+
     final deductions = await db.rawQuery('''
       SELECT COALESCE(SUM(amount), 0.0) as total 
       FROM transactions 
       WHERE type = ? 
       AND date BETWEEN ? AND ?
     ''', ['TransactionType.deduction', startDate, endDate]);
-    
+
     final monthlyIncome = (income.first['total'] as num).toDouble();
     final monthlyDeductions = (deductions.first['total'] as num).toDouble();
     return monthlyIncome - monthlyDeductions;
@@ -310,7 +341,7 @@ class DatabaseService {
       WHERE type = ? 
       AND date BETWEEN ? AND ?
     ''', ['TransactionType.income', startDate, endDate]);
-    
+
     return (result.first['total'] as num).toDouble();
   }
 
@@ -335,7 +366,58 @@ class DatabaseService {
       WHERE type = ? 
       AND date BETWEEN ? AND ?
     ''', ['TransactionType.deduction', startDate, endDate]);
-    
+
     return (result.first['total'] as num).toDouble();
   }
-} 
+
+  // Imaam Salary operations
+  Future<ImaamSalary> createImaamSalary(ImaamSalary salary) async {
+    final db = await database;
+    final id = await db.insert('imaam_salary', salary.toMap());
+    return ImaamSalary(
+      id: id,
+      year: salary.year,
+      month: salary.month,
+      isPaid: salary.isPaid,
+      paidDate: salary.paidDate,
+      amount: salary.amount,
+      notes: salary.notes,
+    );
+  }
+
+  Future<void> updateImaamSalary(ImaamSalary salary) async {
+    final db = await database;
+    await db.update(
+      'imaam_salary',
+      salary.toMap(),
+      where: 'id = ?',
+      whereArgs: [salary.id],
+    );
+  }
+
+  Future<ImaamSalary?> getImaamSalary(int year, int month) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'imaam_salary',
+      where: 'year = ? AND month = ?',
+      whereArgs: [year, month],
+    );
+    if (maps.isEmpty) return null;
+    return ImaamSalary.fromMap(maps.first);
+  }
+
+  Future<List<ImaamSalary>> getAllImaamSalaries() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'imaam_salary',
+      orderBy: 'year DESC, month DESC',
+    );
+    return List.generate(maps.length, (i) => ImaamSalary.fromMap(maps[i]));
+  }
+
+  Future<bool> isCurrentMonthPaid() async {
+    final now = DateTime.now();
+    final salary = await getImaamSalary(now.year, now.month);
+    return salary?.isPaid ?? false;
+  }
+}
