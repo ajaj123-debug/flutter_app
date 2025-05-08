@@ -960,14 +960,14 @@ class _ReportsScreenState extends State<ReportsScreen>
                                 backgroundColor: type == TransactionType.income
                                     ? Colors.green.shade100
                                     : Colors.red.shade100,
-                                child: Icon(
-                                  type == TransactionType.income
-                                      ? Icons.arrow_upward
-                                      : Icons.arrow_downward,
-                                  color: type == TransactionType.income
-                                      ? Colors.green
-                                      : Colors.red,
-                                  size: 20,
+                                child: Text(
+                                  '${index + 1}',
+                                  style: TextStyle(
+                                    color: type == TransactionType.income
+                                        ? Colors.green
+                                        : Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                               title: type == TransactionType.income

@@ -30,7 +30,19 @@ class _ImaamSalaryScreenState extends State<ImaamSalaryScreen> {
     'Salary',
     'Tankhwah',
     'Maulana Salary',
-    'Maulana Payment'
+    'Maulana Payment',
+    'Imaam Salary',
+    'Maulana Tankhwah',
+    'Imaam Tankhwah',
+    'Imaam Payment',
+    'Imam Tankhwah',
+    'Imam Payment',
+    'Imam Salary',
+    'तनख्वाह',
+    'सैलरी',
+    'मौलाना तनख्वाह',
+    'इमाम तनख्वाह',
+    'मौलाना तंख्वाह',
   ];
 
   @override
@@ -461,7 +473,7 @@ class _ImaamSalaryScreenState extends State<ImaamSalaryScreen> {
                       if (hasDeductions) ...[
                         const SizedBox(height: 8),
                         Text(
-                          'Has Deductions',
+                          'From Deductions',
                           style: TextStyle(
                             color: Colors.red,
                             fontSize: 12,
@@ -602,7 +614,7 @@ class _ImaamSalaryScreenState extends State<ImaamSalaryScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.05),
+                        color: Colors.blue.withOpacity(0.00),
                         borderRadius: const BorderRadius.only(
                           bottomLeft: Radius.circular(24),
                           bottomRight: Radius.circular(24),
